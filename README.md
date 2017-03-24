@@ -1,19 +1,23 @@
 # Private Set Intersection (PSI)
 
-### Faster Private Set Intersection Based on OT Extension
+### Faster Unbalanced Private Set Intersection
 
-By *Benny Pinkas, Thomas Schneider and Michael Zohner* in USENIX Security Symposium 2014 [1], *Benny Pinkas, Thomas Schneider, Gil Segev and Michael Zohner* in USENIX Security Symposium 2015 [2], and *Benny Pinkas, Thomas Schneider and Michael Zohner* in ePrint [3]. Please note that the code is currently being restructured and not all routines might work correctly. The PSI code is licensed under AGPLv3, see the LICENSE file for a copy of the license. The implementations for performing PSI on a sets of a billion elements can be found [here](https://github.com/Oleksandr-Tkachenko/PSI_Intersection).
+By *Amanda Resende and Diego Aranha* in Financial Cryptography and Data Security 2018 (FC 2018) [1]. Please note that the code is currently being restructured and not all routines might work correctly. The implementation of OT-based PSI protocol [5], the naive hashing, the server-aided protocol [2] and the Diffie-Hellman-based PSI protocol [3] was obtained from Pinkas et al. [5] available at https://github.com/encryptogroup/PSI, with some changes. The PSI code is licensed under AGPLv3, see the LICENSE file for a copy of the license. 
 
 ### Features
 ---
 
 * An implementation of different PSI protocols: 
   * the naive hashing solutions where elements are hashed and compared 
-  * the server-aided protocol of [4]
-  * the Diffie-Hellman-based PSI protocol of [5]
-  * the OT-based PSI protocol of [3]
+  * the server-aided protocol of [2]
+  * the Diffie-Hellman-based PSI protocol of [3]
+  * the Diffie-Hellman-based PSI protocol of [4]
+  * the OT-based PSI protocol of [5]
+  * the unbalanced PSI protocol based on public key cryptography [1] 
 
 This code is provided as a experimental implementation for testing purposes and should not be used in a productive environment. We cannot guarantee security and correctness.
+
+WARNING: Because of the change in the elliptic curve, the OT-based PSI protocol of [5] is not working. For correct execution see https://github.com/encryptogroup/PSI.
 
 ### Requirements
 ---
@@ -28,17 +32,19 @@ This code is provided as a experimental implementation for testing purposes and 
 
   Install these packages with your favorite package manager, e.g, `sudo apt-get install <package-name>`.
 
-
 ### Building the Project
 
 1. Clone a copy of the main git repository and its submodules by running:
+
 	```
-	git clone --recursive git://github.com/encryptogroup/PSI
+	git clone --recursive git://github.com/amandadavi7/PSI
 	```
 
 2. Enter the Framework directory: `cd PSI/`
 
-3. Call `make` in the root directory to compile all dependencies, tests, and examples and create the executables: **psi.exe** (used for benchmarking) and **demo.exe** (a small demonstrator for intersecting email addresses).
+3. Select the macro #define BASIC_PROTOCOLS in src/util/helpers
+
+4. Call `make` in the root directory to compile all dependencies, tests, and examples and create the executables: **psi.exe** (used for benchmarking) and **demo.exe** (a small demonstrator for intersecting numbers).
 
 Please note that downloading this project as ZIP file will yield compilation errors, since the Miracl library is included as external project. To solve this, download the Miracl sources in commit version `cff161b` (found [here](https://github.com/CertiVox/Miracl/tree/cff161bad6364548b361b63938a988db23f60c2a) and extract the contents of the main folder in `src/externals/Miracl`. Then, continue with steps 2 and 3.
 
@@ -46,59 +52,83 @@ Please note that downloading this project as ZIP file will yield compilation err
 
 An example demo is included and can be run by opening two terminals in the root directory. Execute in the first terminal:
 
-	./demo.exe -r 0 -p 0 -f sample_sets/emails_alice.txt
+	./demo.exe -r 0 -p 0 -f sample_sets/sample_alice
 	
 and in the second terminal:
 	
-	./demo.exe -r 1 -p 0 -f sample_sets/emails_bob.txt
-	
+	./demo.exe -r 1 -p 0 -f sample_sets/sample_bob
+
+These commands will run the naive hashing protocol and compute the intersection on the 1024 randomly generated numbers in sample_sets/sample_alice and sample_sets/sample_bob (where 5 intersecting elements were altered). To use a different protocol, the ['-p'] option can be varied as follows:	
+
+  * `-p 0`: the naive hashing protocol 
+  * `-p 1`: the server-aided protocol of [2]
+  * `-p 2`: the Diffie-Hellman-based PSI protocol of [3]
+  * `-p 3`: the Diffie-Hellman-based PSI protocol of [4]
+  * `-p 6`: the OT-based PSI protocol of [5]
+
+For the next ['-p'] option must be use different commands. For executing the Diffie-Hellman-based PSI protocol of [4] and unbalanced PSI protocol based on public key cryptography [1], it must executing the preprocessing phase at least once.
+
+For`-p 3` (Preprocessing): generating a database and send to the client in the the Diffie-Hellman-based PSI protocol of [4]. It must be selected only the macro #define PREPROCESSING in src/util/helpers, call `make` and opening two terminals in the root directory. Execute in the first terminal:
+
+	./demo.exe -r 0 -p 3 -f sample_sets/sample_alice
+
+and in the second terminal:
+
+	./demo.exe -r 1 -p 3 
+
+For `-p 3`: executing the the Diffie-Hellman-based PSI protocol of [4]. It must be selected only the macro #define OPTIMIZED_PROTOCOLS, call `make` and opening two terminals in the root directory. Execute in the first terminal:
+
+	./demo.exe -r 0 -p 3 -n number_of_elements_in_database
+
+and in the second terminal:
+
+	./demo.exe -r 1 -p 3 -f sample_sets/sample_bob
+
+For `-p 4` (Preprocessing): generating a filter and send to the client in the unbalanced PSI protocol based on public key cryptography [1]. It must be selected only the macro #define PREPROCESSING in src/util/helpers, call `make` and opening two terminals in the root directory. Execute in the first terminal:
+
+	./demo.exe -r 0 -p 4 -f sample_sets/sample_alice
+
+and in the second terminal:
+
+	./demo.exe -r 1 -p 4 
+
+For `-p 5`: executing the unbalanced PSI protocol based on public key cryptography [1]. It must be selected only the macro #define OPTIMIZED_PROTOCOLS, call `make` and opening two terminals in the root directory. Execute in the first terminal:
+
+	./demo.exe -r 0 -p 5 -n number_of_elements_in_filter
+
+and in the second terminal:
+
+	./demo.exe -r 1 -p 5 -f sample_sets/sample_bob
+
 
 This should print the following output in the second terminal: 
 
-		Computation finished. Found 3 intersecting elements:
-		Michael.Zohner@ec-spride.de
-		Evelyne.Wagener@tvcablenet.be
-		Ivonne.Pfisterer@mail.ru
-
-
-
-These commands will run the naive hashing protocol and compute the intersection on the 1024 randomly generated emails in sample_sets/emails_alice.txt and sample_sets/emails_bob.txt (where 3 intersecting elements were altered). To use a different protocol, the ['-p'] option can be varied as follows:
-  * `-p 0`: the naive hashing protocol 
-  * `-p 1`: the server-aided protocol of [4]
-  * `-p 2`: the Diffie-Hellman-based PSI protocol of [5]
-  * `-p 3`: the OT-based PSI protocol of [3]
+`	Computation finished. Found 5 intersecting elements:`
+`	2124136828					    `
+`	1612261203					    `
+`	1819477783					    `
+`	1980673634					    `
+`	0336775411					    `
 
 For further information about the program options, run ```./demo.exe -h```.
 
-### Testing the Protocols
-
-The protocols will automatically be tested on randomly generated data when invoking:
-```
-	make test
-```
-
-WARNING: Some tests can still fail since the code is currently being debugged. 
-
 ### Generating Random Email Adresses
 
-Further random email adresses can be generated by navigating to `sample_sets/emailgenerator/` and invoking: 
+Further random numbers can be generated by navigating to `sample_sets/` and invoking: 
 
 ```
-	./emailgenerator.py "number_of_emails"
+	python3 emailgenerator.py and after enter with the amount of number to be generate and the name of the file to save those numbers.
 ```
-
-The generator uses the first names, family names, and email providers listed in the corresponding files in `sample_sets/emailgenerator/` as base for the generation.
 
 ### References
 
-[1] B. Pinkas, T. Schneider, M. Zohner. Faster Private Set Intersection Based on OT Extension. USENIX Security 2014: 797-812. Full version available at http://eprint.iacr.org/2014/447. 
+[1] A. Resende and D. Aranha. Faster Unbalanced Private Set Intersection. In Financial Cryptography and Data Security (FC 2018), LNCS. Springer, 2018.
 
-[2] B. Pinkas, T. Schneider, G. Segev, M. Zohner. Phasing: Private Set Intersection using Permutation-based Hashing. USENIX Security 2015. Full version available at http://eprint.iacr.org/2015/634. 
+[2] S. Kamara, P. Mohassel, M. Raykova, and S. Sadeghian. Scaling private set intersection to billion-element sets. In Financial Cryptography and Data Security (FC 2014), LNCS. Springer, 2014.
 
-[3] B. Pinkas, T. Schneider, M. Zohner. Scalable Private Set Intersection Based on OT Extension. Available at http://eprint.iacr.org/2016/930. 
+[3] C. Meadows. A more efficient cryptographic matchmaking protocol for use in the absence of a continuously available third party. In IEEE S&P’86, pages 134–137. IEEE, 1986.
 
-[4] S.  Kamara,  P.  Mohassel,  M.  Raykova,  and S. Sadeghian.  Scaling private set intersection to billion-element sets.  In
-Financial Cryptography and Data Security (FC’14) , LNCS. Springer, 2014.
+[4] P. Baldi, R. Baronio, E. D. Cristofaro, P. Gasti, and G. Tsudik, Countering GATTACA: Efficient and Secure Testing of Fully-sequenced Human Genomes, in ACM Conference on Computer and Communications Security, pp. 691-702, ACM, 2011
 
-[5] C. Meadows.   A more efficient cryptographic matchmaking protocol for use in the absence of a continuously available third party.   In IEEE S&P’86, pages 134–137. IEEE, 1986.
+[5] B. Pinkas, T. Schneider, M. Zohner. Scalable Private Set Intersection Based on OT Extension. Available at http://eprint.iacr.org/2016/930. 
 

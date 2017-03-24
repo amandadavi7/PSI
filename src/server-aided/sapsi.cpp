@@ -49,11 +49,14 @@ void server_routine(uint32_t nclients, CSocket* socket, bool cardinality) {
 	cout << "sending all " << intersectsize << " intersecting elements to the clients" << endl;
 #endif
 	/* Send the intersection size and intersecting elements to all clients */
-	for(i = 0; i < nclients; i++) {
-		sockfds[i].Send(&intersectsize, sizeof(uint32_t));
+
+	// I change here to send the intersection only for one client	
+
+//	for(i = 0; i < nclients; i++) {
+		sockfds[0].Send(&intersectsize, sizeof(uint32_t));
 		if(!cardinality)
-			sockfds[i].Send(intersection[i].GetArr(), ceil_divide(neles[i], 8));
-	}
+			sockfds[0].Send(intersection[0].GetArr(), ceil_divide(neles[0], 8));
+//	}
 
 	/* Cleanup */
 	free(neles);
@@ -192,9 +195,11 @@ uint32_t client_routine(uint32_t neles, task_ctx ectx, uint32_t* matches,
 
 	/* Generate the random permutation the elements */
 	crypt_env->gen_rnd_perm(perm, neles);
-
+//	cout << "Neles" << endl;
 	socket->Send((uint8_t*) &neles, sizeof(uint32_t));
+//	cout << "maskbytelen" << endl;
 	socket->Send((uint8_t*) &maskbytelen, sizeof(uint32_t));
+	cout << "nstasks" << ntasks<<endl;
 
 	ectx.eles.outbytelen = maskbytelen,
 	ectx.eles.nelements = neles;

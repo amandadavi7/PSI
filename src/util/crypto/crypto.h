@@ -23,6 +23,7 @@
 #include "TedKrovetzAesNiWrapperC.h"
 #include "intrin_sequential_enc8.h"
 
+//#define PRINT_HASH // Imprime os valores de hash
 
 #define AES_BYTES 16
 #define AES_BITS AES_BYTES*8
@@ -34,7 +35,6 @@
 const uint8_t ZERO_IV[AES_BYTES]={0};
 
 const uint8_t const_seed[] = {0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF};
-
 
 
 enum bc_mode {ECB, CBC};

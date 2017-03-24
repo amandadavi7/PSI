@@ -5,7 +5,6 @@
  *      Author: mzohner
  */
 
-
 #include "crypto.h"
 
 crypto::crypto(uint32_t symsecbits, uint8_t* seed) {
@@ -34,7 +33,6 @@ crypto::~crypto() {
 	clean_aes_key(&aes_dec_key);
 #endif
 }
-
 
 void crypto::init(uint32_t symsecbits, uint8_t* seed) {
 	secparam = get_sec_lvl(symsecbits);
@@ -205,11 +203,9 @@ void crypto::clean_aes_key(AES_KEY_CTX* aeskey) {
 #endif
 }
 
-
 void crypto::seed_aes_key(AES_KEY_CTX* aeskey, uint8_t* seed, bc_mode mode, const uint8_t* iv, bool encrypt) {
 	seed_aes_key(aeskey, secparam.symbits, seed, mode, iv, encrypt);
 }
-
 
 void crypto::seed_aes_key(AES_KEY_CTX* aeskey, uint32_t symbits, uint8_t* seed, bc_mode mode, const uint8_t* iv, bool encrypt) {
 #ifdef OPENSSL_OPAQUE_EVP_CIPHER_CTX
@@ -253,8 +249,6 @@ void crypto::seed_aes_key(AES_KEY_CTX* aeskey, uint32_t symbits, uint8_t* seed, 
 	}
 }
 
-
-
 void crypto::hash_ctr(uint8_t* resbuf, uint32_t noutbytes, uint8_t* inbuf, uint32_t ninbytes, uint64_t ctr) {
 	uint8_t* tmpbuf = (uint8_t*) malloc(ninbytes + sizeof(uint64_t));
 	memcpy(tmpbuf, &ctr, sizeof(uint64_t));
@@ -263,7 +257,6 @@ void crypto::hash_ctr(uint8_t* resbuf, uint32_t noutbytes, uint8_t* inbuf, uint3
 	free(tmpbuf);
 }
 
-
 void crypto::hash(uint8_t* resbuf, uint32_t noutbytes, uint8_t* inbuf, uint32_t ninbytes) {
 	hash_routine(resbuf, noutbytes, inbuf, ninbytes, sha_hash_buf);
 }
@@ -271,7 +264,6 @@ void crypto::hash(uint8_t* resbuf, uint32_t noutbytes, uint8_t* inbuf, uint32_t 
 void crypto::hash(uint8_t* resbuf, uint32_t noutbytes, uint8_t* inbuf, uint32_t ninbytes, uint8_t* tmpbuf) {
 	hash_routine(resbuf, noutbytes, inbuf, ninbytes, tmpbuf);
 }
-
 
 //A fixed-key hashing scheme that uses AES, should not be used for real hashing, hashes to AES_BYTES bytes
 void crypto::fixed_key_aes_hash(AES_KEY_CTX* aes_key, uint8_t* resbuf, uint32_t noutbytes, uint8_t* inbuf, uint32_t ninbytes) {
@@ -322,6 +314,7 @@ void crypto::gen_rnd_perm(uint32_t* perm, uint32_t neles) {
 	uint32_t i, j;
 	//TODO Generate random numbers (CAREFUL: NOT UNIFORM)
 	gen_rnd((uint8_t*) rndbuf, sizeof(uint32_t) * neles);
+	
 	for(i = 0; i < neles; i++) {
 		perm[i] = i;
 	}
@@ -388,20 +381,39 @@ void crypto::free_prf_state(prf_state_ctx* prf_state) {
 	clean_aes_key(&(prf_state->aes_key));
 }
 
-
 void sha1_hash(uint8_t* resbuf, uint32_t noutbytes, uint8_t* inbuf, uint32_t ninbytes, uint8_t* hash_buf) {
 	SHA_CTX sha;
 	SHA1_Init(&sha);
 	SHA1_Update(&sha, inbuf, ninbytes);
 	SHA1_Final(hash_buf, &sha);
+	
+//	cout << "SHA1" <<endl;
+	
+#ifdef PRINT_HASHES
+	cout << "SHA1 hashes: " << '\n';
+	for (unsigned int i = 0; i<noutbytes; i++)
+		printf("%02x", hash_buf[i]);
+	cout << "\n";
+#endif
+
 	memcpy(resbuf, hash_buf, noutbytes);
 }
 
+// Now we are using this
 void sha256_hash(uint8_t* resbuf, uint32_t noutbytes, uint8_t* inbuf, uint32_t ninbytes, uint8_t* hash_buf) {
+//	cout << "noutbytes: " << noutbytes << "\n" << "ninbytes:" << ninbytes << "\n";
 	SHA256_CTX sha;
 	SHA256_Init(&sha);
 	SHA256_Update(&sha, inbuf, ninbytes);
 	SHA256_Final(hash_buf, &sha);
+//	cout << "SHA256" <<endl;
+	
+#ifdef PRINT_HASHES
+	cout << "SHA256 hashes: " << '\n';
+	for (unsigned int i = 0; i<noutbytes; i++)
+		printf("%02x", hash_buf[i]);
+	cout << "\n";
+#endif
 	memcpy(resbuf, hash_buf, noutbytes);
 }
 
@@ -410,6 +422,15 @@ void sha512_hash(uint8_t* resbuf, uint32_t noutbytes, uint8_t* inbuf, uint32_t n
 	SHA512_Init(&sha);
 	SHA512_Update(&sha, inbuf, ninbytes);
 	SHA512_Final(hash_buf, &sha);
+//	cout << "SHA512" <<endl;
+	
+#ifdef PRINT_HASHES
+	cout << "SHA512 hashes: " << '\n';
+	for (unsigned int i = 0; i<noutbytes; i++)
+		printf("%02x", hash_buf[i]);
+	cout << "\n";
+#endif
+
 	memcpy(resbuf, hash_buf, noutbytes);
 }
 
@@ -476,9 +497,6 @@ void crypto::aes_compression_hash(AES_KEY_CTX* aes_key, uint8_t* resbuf, uint8_t
 	((uint64_t*) resbuf)[0] = ((uint64_t*) inbuf)[0] ^ ((uint64_t*) aes_hash_buf_y1)[0] ^ ((uint64_t*) aes_hash_buf_y2)[0] ^ ((uint64_t*) resbuf)[0];
 	((uint64_t*) resbuf)[1] = ((uint64_t*) inbuf)[1] ^ ((uint64_t*) aes_hash_buf_y1)[1] ^ ((uint64_t*) aes_hash_buf_y2)[1] ^ ((uint64_t*) resbuf)[1];
 }
-
-
-
 
 /*static void InitAndReadCodeWord(REGISTER_SIZE*** codewords) {
 	uint32_t ncodewords = m_nCodeWordBits;

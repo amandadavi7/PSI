@@ -245,7 +245,8 @@ public:
 
 #ifdef TRACK_COMMUNICATION
 		bytes_received += ((uint64_t) nLen);
-		//cout << "bytes_received = " << bytes_received << endl;
+//		cout << "bytes_received = " << bytes_received << endl;
+//		cout << "receiver - (uint64_t) nLen) = " << (uint64_t) nLen << endl;
 #endif
 		return nLen;
  	}
@@ -255,7 +256,8 @@ public:
 		//cout << "Socket " << m_hSock << " (" << (unsigned long long) this << ") sending " << nLen << " bytes" << endl;
 #ifdef TRACK_COMMUNICATION
 		bytes_sent+= ((uint64_t) nLen);
-		//cout << "bytes_sent = " << bytes_sent << endl;
+//		cout << "bytes_sent = " << bytes_sent << endl;
+//		cout << "sender - (uint64_t) nLen) = " << (uint64_t) nLen << endl;
 #endif
 		return send(m_hSock, (char*)pBuf, nLen, nFlags);
 	}	

@@ -15,6 +15,7 @@
 //#define USE_PIPELINED_AES_NI
 
 #include <iostream>
+#include <iomanip> 
 #include <string.h>
 #include <stdio.h>
 #include <assert.h>
@@ -53,6 +54,9 @@ enum role_type {SERVER, CLIENT};
 #define MAX_INT (~0)
 #if (MAX_INT == 0xFFFFFFFF)
 #define MACHINE_SIZE_32
+
+#define PRECISION 4 // Define a precisão do tempo
+
 typedef uint32_t REGISTER_SIZE;
 
 #elif (MAX_INT == 0xFFFFFFFFFFFFFFFF)
@@ -89,7 +93,6 @@ typedef int socklen_t;
 #include <errno.h>
 #include <netinet/tcp.h>
 
-
 typedef int SOCKET;
 #define INVALID_SOCKET -1
 typedef REGISTER_SIZE REGSIZE;
@@ -112,12 +115,11 @@ typedef struct securitylevel
 
 static const seclvl ST = {40, 80, 1024, 160, 163};
 static const seclvl MT = {40, 112, 2048, 192, 233};
-static const seclvl LT = {40, 128, 3072, 256, 283};
+static const seclvl LT = {40, 128, 3072, 256, 283};// Acho que ele pega esse
 static const seclvl XLT = {40, 192, 7680, 384, 409};
 static const seclvl XXLT = {40, 256, 15360, 512, 571};
 
-enum psi_prot {NAIVE=0, TTP=1, DH_ECC=2, OT_PSI=3, PROT_LAST=4};
-
+enum psi_prot {NAIVE=0, TTP=1, DH_ECC=2, DH_ECC_GATTACA=3, GENERATE_FILTER =4, DH_ECC_OPTIMIZED=5, OT_PSI=6, PROT_LAST=7};
 
 static int ceil_log2(int bits) {
 	if(bits == 1) return 1;

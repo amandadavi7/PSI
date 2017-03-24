@@ -9,6 +9,9 @@
 #define DEMONSTRATOR_H_
 
 #include "../pk-based/dh-psi.h"
+#include "../generate_filter/dh_generate_filter.h"
+#include "../pk-based_optimized/dh-psi_optimized.h"
+#include "../pk-based_gattaca/dh-psi_gattaca.h"
 #include "../ot-based/ot-psi.h"
 #include "../server-aided/sapsi.h"
 #include "../naive-hashing/naive-psi.h"

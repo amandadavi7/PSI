@@ -16,6 +16,7 @@
 #include <glib.h>
 #include "../util/helpers.h"
 
+#define PRECISION 4
 
 void print_naive_psi_usage();
 uint32_t naivepsi(role_type role, uint32_t neles, uint32_t pneles, uint32_t* elebytelens, uint8_t** elements,

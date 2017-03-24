@@ -3,8 +3,9 @@
  *
  *  Created on: May 20, 2015
  *      Author: mzohner
+ *  Last modification: Dezember 12, 2017
+ * 	Author: Amanda
  */
-
 
 #include "psi_demo.h"
 
@@ -26,9 +27,11 @@ int32_t psi_demonstrator(int32_t argc, char** argv) {
 	string filename;
 	role_type role = (role_type) 0;
 	psi_prot protocol;
-
 	mbfac=1024*1024;
 
+	gettimeofday(&t_start, NULL);
+
+	// Show which the options of the demo in the screen
 	read_psi_demo_options(&argc, &argv, &role, &protocol, &filename, &address, &nelements, &detailed_timings);
 
 	if(role == SERVER) {
@@ -43,25 +46,76 @@ int32_t psi_demonstrator(int32_t argc, char** argv) {
 			connect(address.c_str(), port, sockfd[i]);
 	}
 
-	gettimeofday(&t_start, NULL);
+#ifdef BASIC_PROTOCOLS
 
+#ifdef TIMING_OPERATION
+        gettimeofday(&t_start, NULL);
+#endif
 	//read in files and get elements and byte-length from there
 	read_elements(&elements, &elebytelens, &nelements, filename);
-	if(detailed_timings) {
-		gettimeofday(&t_end, NULL);
+
+#ifdef TIMING_OPERATION
+	gettimeofday(&t_end, NULL);
+	cout << "Time for reading elements:\t" << fixed << std::setprecision(2) << getMillies(t_start, t_end) << " ms" << endl;
+#endif
+
+#endif
+
+#ifdef  OPTIMIZED_PROTOCOLS
+
+#ifdef TIMING_OPERATION
+        gettimeofday(&t_start, NULL);
+#endif
+
+	if(role == CLIENT){
+		read_elements(&elements, &elebytelens, &nelements, filename);
 	}
+	else{
+		elebytelens = (uint32_t*) malloc(sizeof(uint32_t) * (nelements));
+
+		for(i = 0; i < nelements; i++)
+			elebytelens[i] = 32;
+	}
+
+#ifdef TIMING_OPERATION
+	gettimeofday(&t_end, NULL);
+	cout << "Time for reading elements:\t" << fixed << std::setprecision(2) << getMillies(t_start, t_end) << " ms" << endl;
+#endif
+
+#endif
+
+#ifdef PREPROCESSING
+
+#ifdef TIMING_OPERATION
+        gettimeofday(&t_start, NULL);
+#endif
+
+	if(role == SERVER){
+		read_elements(&elements, &elebytelens, &nelements, filename);
+	}
+	else{
+		elebytelens = (uint32_t*) malloc(sizeof(uint32_t) * (nelements));
+
+		for(i = 0; i < nelements; i++)
+			elebytelens[i] = 32;
+	}
+
+#ifdef TIMING_OPERATION
+	gettimeofday(&t_end, NULL);
+	cout << "Time for reading elements:\t" << fixed << std::setprecision(2) << getMillies(t_start, t_end) << " ms" << endl;
+#endif
+
+#endif
 
 	if(protocol != TTP)
 		pnelements = exchange_information(nelements, elebytelen, symsecbits, ntasks, protocol, sockfd[0]);
 	//cout << "Performing private set-intersection between " << nelements << " and " << pnelements << " element sets" << endl;
 
-	if(detailed_timings) {
-		cout << "Time for reading elements:\t" << fixed << std::setprecision(2) << getMillies(t_start, t_end)/1000 << " s" << endl;
-	}
-
+	// Function crypt.cpp
 	crypto crypto(symsecbits, (uint8_t*) const_seed);
 
 	switch(protocol) {
+
 	case NAIVE:
 		intersect_size = naivepsi(role, nelements, pnelements, elebytelens, elements, &intersection, &res_bytelens,
 				&crypto, sockfd.data(), ntasks);
@@ -72,6 +126,20 @@ int32_t psi_demonstrator(int32_t argc, char** argv) {
 		break;
 	case DH_ECC:
 		intersect_size = dhpsi(role, nelements, pnelements, elebytelens, elements, &intersection, &res_bytelens, &crypto,
+				sockfd.data(), ntasks);
+		break;
+	case DH_ECC_GATTACA:
+		intersect_size = dhpsi_gattaca(role, nelements, pnelements, elebytelens, elements, &intersection, &res_bytelens, &crypto,
+				sockfd.data(), ntasks);
+		break;
+
+	case GENERATE_FILTER:
+				dhgenerate_filter(role, nelements, pnelements, elebytelens, elements, &intersection, &res_bytelens, &crypto,
+				sockfd.data(), ntasks);
+	break;
+
+	case DH_ECC_OPTIMIZED:
+		intersect_size = dhpsi_optimized(role, nelements, pnelements, elebytelens, elements, &intersection, &res_bytelens, &crypto,
 				sockfd.data(), ntasks);
 		break;
 	case OT_PSI:
@@ -86,45 +154,78 @@ int32_t psi_demonstrator(int32_t argc, char** argv) {
 
 	gettimeofday(&t_end, NULL);
 
+#ifndef PREPROCESSING
 
 	if(role == CLIENT) {
 		cout << "Computation finished. Found " << intersect_size << " intersecting elements:" << endl;
-		if(!detailed_timings) {
-			for(i = 0; i < intersect_size; i++) {
-				//cout << i << ": \t";
-				for(j = 0; j < res_bytelens[i]; j++) {
-					cout << intersection[i][j];
-				}
-				cout << endl;
+
+#ifdef PRINT_INTERSECTION
+
+		for(i = 0; i < intersect_size; i++) {
+			for(j = 0; j < res_bytelens[i]; j++) {
+				cout << intersection[i][j];
 			}
+			cout << endl;
 		}
+#endif
 
 		for(i = 0; i < intersect_size; i++) {
 			free(intersection[i]);
 		}
 		if(intersect_size > 0)
 			free(res_bytelens);
-	}
 
+	}
+#endif
 	for(i = 0; i < sockfd.size(); i++) {
 		bytes_sent += sockfd[i].get_bytes_sent();
 		bytes_received += sockfd[i].get_bytes_received();
 	}
 
 	if(detailed_timings) {
-		cout << "Required time:\t" << fixed << std::setprecision(1) << getMillies(t_start, t_end)/1000 << " s" << endl;
+		cout << "Required time:\t" << fixed << std::setprecision(3) << getMillies(t_start, t_end)/1000 << "s" << endl;
 		cout << "Data sent:\t" <<	((double)bytes_sent)/mbfac << " MB" << endl;
 		cout << "Data received:\t" << ((double)bytes_received)/mbfac << " MB" << endl;
 	}
 
-
+#ifdef BASIC_PROTOCOLS
 	for(i = 0; i < nelements; i++)
 		free(elements[i]);
-	free(elements);
-	free(elebytelens);
-	return 1;
-}
 
+	free(elebytelens);
+	free(elements);
+#endif
+
+#ifdef PREPROCESSING
+
+	if(role == SERVER){
+	  	for(i = 0; i < nelements; i++)
+		      free(elements[i]);
+
+		free(elebytelens);
+		free(elements);
+	}
+	else{
+		free(elebytelens);
+	}
+#endif
+
+#ifdef OPTIMIZED_PROTOCOLS
+
+	if(role == CLIENT){
+	  	for(i = 0; i < nelements; i++)
+		      free(elements[i]);
+
+		free(elebytelens);
+		free(elements);
+	}
+	else{
+		free(elebytelens);
+	}
+#endif
+	return 1;
+
+}
 
 void read_elements(uint8_t*** elements, uint32_t** elebytelens, uint32_t* nelements, string filename) {
 	uint32_t i, j;
@@ -159,16 +260,13 @@ void read_elements(uint8_t*** elements, uint32_t** elebytelens, uint32_t* neleme
 	}
 }
 
-
-
-
 int32_t read_psi_demo_options(int32_t* argcp, char*** argvp, role_type* role, psi_prot* protocol, string* filename,
 		string* address, uint32_t* nelements, bool* detailed_timings) {
 
 	uint32_t int_role, int_protocol = 0;
 	parsing_ctx options[] = {{(void*) &int_role, T_NUM, 'r', "Role: 0/1", true, false},
-			{(void*) &int_protocol, T_NUM, 'p', "PSI protocol (0: Naive, 1: TTP, 2: DH, 3: OT)", true, false},
-			{(void*) filename, T_STR, 'f', "Input file", true, false},
+			{(void*) &int_protocol, T_NUM, 'p', "PSI protocol (0: Naive, 1: TTP, 2: DH, 3: DH_gattaca, 4: Generate_Filter, 5: DH_optimized, 6: OT)", true, false},
+			{(void*) filename, T_STR, 'f', "Input file", false, false},
 			{(void*) address, T_STR, 'a', "Server IP-address (needed by both, client and server)", false, false},
 			{(void*) nelements, T_NUM, 'n', "Number of elements", false, false},
 			{(void*) detailed_timings, T_FLAG, 't', "Flag: Enable detailed timings", false, false}
@@ -187,3 +285,4 @@ int32_t read_psi_demo_options(int32_t* argcp, char*** argvp, role_type* role, ps
 
 	return 1;
 }
+

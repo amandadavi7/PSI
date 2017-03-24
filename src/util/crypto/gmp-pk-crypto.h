@@ -26,10 +26,16 @@ public:
 
 	num* get_num();
 	num* get_rnd_num(uint32_t bitlen=0);
+	num* get_rnd_num_1();
 	fe* get_fe();
 	fe* get_rnd_fe(uint32_t bitlen);
 	fe* get_generator();
 	fe* get_rnd_generator();
+		
+	num* get_order(); //falta implementar
+// So para testar ---------------
+	num* get_server_exp();
+//--------------------------------
 
 	mpz_t* get_p();
 	uint32_t get_size();
@@ -84,6 +90,8 @@ public:
 	void set_si(int32_t src);
 	void set_add(num* a, num* b);
 	void set_mul(num* a, num* b);
+	void set_inv(num** x, num* n, num** w, uint32_t qtd);
+	void set_inv_1(num** x, num* n, num** w);
 
 	mpz_t* get_val();
 

@@ -28,6 +28,9 @@ struct ecc_fparams {
 	Big* X;
 	Big* Y;
 	Big* BP;
+	Big* order;
+	Big* server_exp;
+	
 	int32_t m;
 	int32_t a;
 	int32_t b;
@@ -46,6 +49,7 @@ public:
 
 	num* get_num();
 	num* get_rnd_num(uint32_t bitlen=0);
+	num* get_rnd_num_1();
 	fe* get_fe();
 	fe* get_rnd_fe(uint32_t bitlen);
 	fe* get_generator();
@@ -57,6 +61,11 @@ public:
 
 	brickexp* get_brick(fe* gen);
 	ecc_fparams* get_params() {return fparams;};
+	
+	num* get_order();
+	//So para testar----------------------
+	num* get_server_exp();
+        //---------------------------------------
 
 	//#define SampleFieldElementFromBytes(ele, buf, bytelen) ByteToFieldElement(ele, bytelen, buf)
 	//#define FieldSampleRandomGenerator(g, div, params) SampleRandomGenerator(g, div, (&params))
@@ -77,7 +86,6 @@ private:
 };
 
 
-
 class ecc_num : public num {
 	//This is a Big
 public:
@@ -88,8 +96,11 @@ public:
 	void set_si(int32_t src);
 	void set_add(num* a, num* b);
 	void set_mul(num* a, num* b);
+	void set_inv(num** x, num* n, num** w, uint32_t qtd);
+	void set_inv_1(num** x, num* n, num** w);
 
 	Big* get_val();
+//	void set_val(Big *b){val= b;};
 
 	void export_to_bytes(uint8_t* buf, uint32_t field_size_bytes);
 	void import_from_bytes(uint8_t* buf, uint32_t field_size_bytes);
@@ -101,16 +112,15 @@ private:
 	ecc_field* field;
 };
 
-
 class ecc_fe : public fe {
 public:
 	ecc_fe(ecc_field* fld);
 	ecc_fe(ecc_field* fld, EC2* src);
 	~ecc_fe();
 	void set(fe* src);
+	void set(unsigned char [64]);
 	EC2* get_val();
 	void set_mul(fe* a, fe* b);
-
 	void set_pow(fe* b, num* e);
 	void set_div(fe* a, fe* b);
 	void set_double_pow_mul(fe* b1, num* e1, fe* b2, num* e2);
@@ -124,6 +134,11 @@ public:
 private:
 	void init() {val = new EC2();};
 	EC2* val;
+#ifdef COMPRESSION        
+	uint8_t point[32];
+#else
+        uint8_t point[64];
+#endif
 	ecc_field* field;
 };
 

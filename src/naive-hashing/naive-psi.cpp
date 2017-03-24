@@ -17,6 +17,7 @@ uint32_t naivepsi(role_type role, uint32_t neles, uint32_t pneles, uint32_t* ele
 
 	uint32_t intersect_size = naivepsi(role, neles, pneles, ectx, crypt_env, sock, ntasks, matches);
 
+//	Do need to fix create_result_from_matches_var_bitlen function	
 	create_result_from_matches_var_bitlen(result, resbytelens, elebytelens, elements, matches, intersect_size);
 
 	free(matches);
@@ -46,18 +47,24 @@ uint32_t naivepsi(role_type role, uint32_t neles, uint32_t pneles, uint32_t eleb
 uint32_t naivepsi(role_type role, uint32_t neles, uint32_t pneles, task_ctx ectx,
 		crypto* crypt_env, CSocket* sock, uint32_t ntasks, uint32_t* matches) {
 
-	uint32_t i, intersect_size, maskbytelen;
+	uint32_t i, intersect_size, maskbytelen, sndbufsize, rcvbufsize,aux, count;
 	//task_ctx_naive ectx;
 	CSocket* tmpsock = sock;
 
 	uint32_t* perm;
 	uint8_t *hashes, *phashes;
 
-	maskbytelen = ceil_divide(crypt_env->get_seclvl().statbits + ceil_log2(neles) + ceil_log2(pneles), 8);
+	timeval t_start, t_end;
 
+#ifdef MASKBYTELEN
+	
+	maskbytelen = ceil_divide(crypt_env->get_seclvl().statbits + ceil_log2(neles) + ceil_log2(pneles), 8);
+#else
+	maskbytelen = crypt_env->get_hash_bytes();
+#endif
+	
 	hashes = (uint8_t*) malloc(sizeof(uint8_t) * neles * maskbytelen);
 	perm  = (uint32_t*) malloc(sizeof(uint32_t) * neles);
-
 
 	/* Generate the random permutation the elements */
 	crypt_env->gen_rnd_perm(perm, neles);
@@ -75,16 +82,62 @@ uint32_t naivepsi(role_type role, uint32_t neles, uint32_t pneles, task_ctx ectx
 	ectx.eles.perm = perm;
 	ectx.sctx.symcrypt = crypt_env;
 
+#ifdef TIMING_OPERATION
+	      gettimeofday(&t_start, NULL);
+#endif	
+	
 	run_task(ntasks, ectx, psi_hashing_function);
+	
+#ifdef TIMING_OPERATION
+	      gettimeofday(&t_end, NULL);
+	      cout << "Time for the hash:\t" << fixed << std::setprecision(PRECISION) << getMillies(t_start, t_end) << " ms" << endl;
+#endif
+	      
+#ifdef PRINT_HASHES_
+	      cout << "Hash" << endl;
+	      count =  neles * maskbytelen;
+	      aux = maskbytelen;
+	      for(i = 0; i<count; i++){
+		    if (i == aux){
+			  aux = aux + maskbytelen;
+			  cout<< endl;
+		    }
+		    printf("%02x", (hashes[i]));	
+	      }
+	      cout << endl;
+#endif	  
+	      
+#ifdef MASKBYTELEN
+	
+	maskbytelen = ceil_divide(crypt_env->get_seclvl().statbits + ceil_log2(neles) + ceil_log2(pneles), 8);
+#else
+	maskbytelen = crypt_env->get_hash_bytes();
+#endif	      
 
 	phashes = (uint8_t*) malloc(sizeof(uint8_t) * pneles * maskbytelen);
 
+	if(role == SERVER) {
+		sndbufsize = neles * maskbytelen;
+		rcvbufsize = 0;
+	} else {
+		sndbufsize = 0;
+		rcvbufsize = pneles * maskbytelen;
+	}
 
 #ifdef DEBUG
 	cout << "Exchanging hashes" << endl;
 #endif
-	snd_and_rcv(hashes, neles * maskbytelen, phashes, pneles * maskbytelen, tmpsock);
+	
+#ifdef TIMING_OPERATION
+	gettimeofday(&t_start, NULL);
+#endif
 
+	snd_and_rcv(hashes, sndbufsize, phashes, rcvbufsize, tmpsock);
+
+#ifdef TIMING_OPERATION
+	gettimeofday(&t_end, NULL);
+	cout << "Time for the exchange:\t" << fixed << std::setprecision(PRECISION) << getMillies(t_start, t_end) << " ms" << endl;
+#endif
 	/*cout << "Hashes of my elements: " << endl;
 	for(i = 0; i < neles; i++) {
 		for(uint32_t j = 0; j < maskbytelen; j++) {
@@ -103,9 +156,25 @@ uint32_t naivepsi(role_type role, uint32_t neles, uint32_t pneles, task_ctx ectx
 #ifdef DEBUG
 	cout << "Finding intersection" << endl;
 #endif
-	intersect_size = find_intersection(hashes, neles, phashes, pneles, maskbytelen,
-			perm, matches);
-
+	
+#ifdef TIMING_OPERATION
+              gettimeofday(&t_start, NULL);
+#endif  	
+	
+	if(role == SERVER) {
+		intersect_size = 0;
+	} else {//This is important to control the false positive rate
+		if(neles > pneles){
+			intersect_size = find_intersection(hashes, neles, phashes, pneles, maskbytelen, perm, matches);		
+		} else{
+			intersect_size = find_intersection(phashes, pneles, hashes, neles, maskbytelen, perm, matches);
+		}
+	}
+	
+#ifdef TIMING_OPERATION
+	      gettimeofday(&t_end, NULL);
+	      cout << "Time for finding intersection:\t" << fixed << std::setprecision(PRECISION) << getMillies(t_start, t_end) << " ms" << endl;
+#endif
 
 #ifdef DEBUG
 	cout << "Free-ing allocated memory" << endl;
@@ -117,5 +186,3 @@ uint32_t naivepsi(role_type role, uint32_t neles, uint32_t pneles, task_ctx ectx
 
 	return intersect_size;
 }
-
-

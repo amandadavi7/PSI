@@ -16,6 +16,7 @@
 #include <glib.h>
 #include "../util/helpers.h"
 
+//#define PRECISION 4
 
 uint32_t dhpsi(role_type role, uint32_t neles, uint32_t pneles, uint32_t* elebytelens, uint8_t** elements,
 		uint8_t*** result, uint32_t** resbytelens, crypto* crypt_env, CSocket* sock, uint32_t ntasks,

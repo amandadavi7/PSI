@@ -24,7 +24,6 @@ uint32_t dhpsi(role_type role, uint32_t neles, uint32_t pneles, uint32_t* elebyt
 	return intersect_size;
 }
 
-
 uint32_t dhpsi(role_type role, uint32_t neles, uint32_t pneles, uint32_t elebytelen, uint8_t* elements,
 		uint8_t** result, crypto* crypt_env, CSocket* sock, uint32_t ntasks, bool cardinality, field_type ftype) {
 	task_ctx ectx;
@@ -49,19 +48,17 @@ uint32_t dhpsi(role_type role, uint32_t neles, uint32_t pneles, task_ctx ectx, c
 	//task_ctx ectx;
 	pk_crypto* field = crypt_env->gen_field(ftype);
 	num* exponent = field->get_rnd_num();
-	CSocket* tmpsock = sock;
-
 	fe_bytes = field->fe_byte_size();
-
+	CSocket* tmpsock = sock;
 	uint32_t* perm = (uint32_t*) malloc(sizeof(uint32_t) * neles);
 	uint32_t* cardinality_perm = (uint32_t*) malloc(sizeof(uint32_t) * pneles);
 	//uint8_t* permeles = (uint8_t*) malloc(sizeof(uint8_t) * neles * elebytelen);
 	uint8_t* encrypted_eles = (uint8_t*) malloc(sizeof(uint8_t) * neles * fe_bytes);
 	uint8_t* hashes = (uint8_t*) malloc(sizeof(uint8_t) * neles * hash_bytes);
-
 	//Partner's elements and hashes
 	uint8_t *peles, *phashes, *perm_peles;
 
+	timeval t_start, t_end;
 
 	/* Generate a random permutation for the elements */
 	crypt_env->gen_rnd_perm(perm, neles);
@@ -73,11 +70,20 @@ uint32_t dhpsi(role_type role, uint32_t neles, uint32_t pneles, task_ctx ectx, c
 	ectx.eles.perm = perm;
 	ectx.sctx.symcrypt = crypt_env;
 
-
 #ifdef DEBUG
 	cout << "Hashing elements" << endl;
 #endif
+
+#ifdef TIMING_OPERATION
+	gettimeofday(&t_start, NULL);
+#endif
+
 	run_task(ntasks, ectx, psi_hashing_function);
+
+#ifdef TIMING_OPERATION
+	      gettimeofday(&t_end, NULL);
+	      cout << "Time for the first hash:\t" << fixed << std::setprecision(4) << getMillies(t_start, t_end) << " ms" << endl;
+#endif
 
 	/* Encrypt elements */
 	ectx.eles.input1d = hashes;
@@ -93,15 +99,33 @@ uint32_t dhpsi(role_type role, uint32_t neles, uint32_t pneles, task_ctx ectx, c
 #ifdef DEBUG
 	cout << "Hash and encrypting my elements" << endl;
 #endif
+#ifdef TIMING_OPERATION
+	      gettimeofday(&t_start, NULL);
+#endif
+
 	run_task(ntasks, ectx, asym_encrypt);
 
+#ifdef TIMING_OPERATION
+	      gettimeofday(&t_end, NULL);
+	      cout << "Time for the first exponentiation:\t" << fixed << std::setprecision(4) << getMillies(t_start, t_end) << " ms" << endl;
+#endif
 
 	peles = (uint8_t*) malloc(sizeof(uint8_t) * pneles * fe_bytes);
+
 #ifdef DEBUG
 	cout << "Exchanging ciphertexts" << endl;
 #endif
+
+#ifdef TIMING_OPERATION
+	gettimeofday(&t_start, NULL);
+#endif
+
 	snd_and_rcv(encrypted_eles, neles * fe_bytes, peles, pneles * fe_bytes, tmpsock);
 
+#ifdef TIMING_OPERATION
+	gettimeofday(&t_end, NULL);
+	cout << "Time for the first exchanging: \t" << fixed << std::setprecision(4)<< getMillies(t_start, t_end) << "ms" <<  endl;
+#endif
 
 	/* Import and Encrypt elements again */
 	ectx.eles.input1d = peles;
@@ -116,7 +140,17 @@ uint32_t dhpsi(role_type role, uint32_t neles, uint32_t pneles, task_ctx ectx, c
 #ifdef DEBUG
 	cout << "Encrypting partners elements" << endl;
 #endif
+
+#ifdef TIMING_OPERATION
+	gettimeofday(&t_start, NULL);
+#endif
+
 	run_task(ntasks, ectx, asym_encrypt);
+
+#ifdef TIMING_OPERATION
+	gettimeofday(&t_end, NULL);
+	cout << "Time for the second exponentiation (server):\t" << fixed << std::setprecision(4) << getMillies(t_start, t_end) << " ms" << endl;
+#endif
 
 	/* if only the cardinality should be computed, permute the elements randomly again. Otherwise don't permute */
 	if(cardinality) {
@@ -127,6 +161,13 @@ uint32_t dhpsi(role_type role, uint32_t neles, uint32_t pneles, task_ctx ectx, c
 	}
 
 	/* Hash elements */
+
+#ifdef MASKBYTELEN
+	hash_bytes = ceil_divide(crypt_env->get_seclvl().statbits + ceil_log2(neles) + ceil_log2(pneles), 8);
+#else
+	hash_bytes = crypt_env->get_hash_bytes();
+#endif
+
 	phashes = (uint8_t*) malloc(sizeof(uint8_t) * pneles * hash_bytes);
 
 	ectx.eles.input1d = peles;
@@ -141,7 +182,16 @@ uint32_t dhpsi(role_type role, uint32_t neles, uint32_t pneles, task_ctx ectx, c
 #ifdef DEBUG
 	cout << "Hashing elements" << endl;
 #endif
+
+#ifdef TIMING_OPERATION
+	gettimeofday(&t_start, NULL);
+#endif
 	run_task(ntasks, ectx, psi_hashing_function);
+
+#ifdef TIMING_OPERATION
+	gettimeofday(&t_end, NULL);
+	cout << "Time for the second hash:\t" << fixed << std::setprecision(4) << getMillies(t_start, t_end) << " ms" << endl;
+#endif
 
 #ifdef DEBUG
 	cout << "Exchanging hashes" << endl;
@@ -155,16 +205,40 @@ uint32_t dhpsi(role_type role, uint32_t neles, uint32_t pneles, task_ctx ectx, c
 		rcvbufsize = neles * hash_bytes;
 	}
 
+#ifdef TIMING_OPERATION
+	gettimeofday(&t_start, NULL);
+#endif	
+	
 	snd_and_rcv(phashes, sndbufsize, hashes, rcvbufsize, tmpsock);
+
+#ifdef TIMING_OPERATION
+	gettimeofday(&t_end, NULL);
+	cout << "Time for the second exchanging: \t" << fixed << std::setprecision(4)<< getMillies(t_start, t_end) << "ms" <<  endl;
+#endif	
 
 #ifdef DEBUG
 	cout << "Finding intersection" << endl;
 #endif
 	if(role == SERVER) {
 		intersect_size = 0;
-	} else {
-		intersect_size = find_intersection(hashes, neles, phashes, pneles, hash_bytes, perm, matches);
-	}
+
+	} else {//This is important to control the false positive rate
+
+	        
+#ifdef TIMING_OPERATION
+	     gettimeofday(&t_start, NULL);
+#endif
+	     if(neles > pneles){
+		  intersect_size = find_intersection(hashes, neles, phashes, pneles, hash_bytes, perm, matches);		
+	     } else{
+		  intersect_size = find_intersection(phashes, pneles, hashes, neles, hash_bytes, perm, matches);
+	     }	
+	}	
+	
+#ifdef TIMING_OPERATION
+	gettimeofday(&t_end, NULL);
+	cout << "Time for found the intersection: \t" << fixed << std::setprecision(PRECISION) << getMillies(t_start, t_end) << "ms" << endl;
+#endif
 
 #ifdef DEBUG
 	cout << "Free-ing allocated memory" << endl;
@@ -175,6 +249,9 @@ uint32_t dhpsi(role_type role, uint32_t neles, uint32_t pneles, task_ctx ectx, c
 	free(peles);
 	free(phashes);
 	free(cardinality_perm);
-
+	
+	delete exponent;
+	delete field;
+	
 	return intersect_size;
 }

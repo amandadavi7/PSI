@@ -7,7 +7,8 @@ EXT=${SRC}/externals
 # compiler settings
 CC=g++
 #COMPILER_OPTIONS=-O2
-COMPILER_OPTIONS=-g3 -O2 #-fPIC -mavx -maes -mpclmul -DRDTSC -DTEST=AES128
+COMPILER_OPTIONS=-g3 -O2 -march=native -funroll-loops -mrdrnd #-fPIC -mavx -maes -mpclmul -DRDTSC -DTEST=AES128
+# Inserir o -mrdrnd para compilar no meu pc
 
 DEBUG_OPTIONS=-g3 -ggdb #-Wall -Wextra 
 
@@ -22,10 +23,9 @@ MIRACL_MAKE:=linux
 GNU_LIB_PATH:=i386
 endif
 
-INCLUDE=-I..  -I/usr/include/glib-2.0/ -I/usr/lib/${GNU_LIB_PATH}-linux-gnu/glib-2.0/include `pkg-config --cflags glib-2.0`
+INCLUDE=-I..  `pkg-config --cflags glib-2.0`
 
-
-LIBRARIES=-lgmp -lgmpxx -lpthread  -L /usr/lib  -lssl -lcrypto -lglib-2.0 `pkg-config --libs glib-2.0`
+LIBRARIES=-lgmp -lgmpxx -lpthread  -L /usr/lib  -lssl -lcrypto `pkg-config --libs glib-2.0` 
 CFLAGS=
 
 # all source files and corresponding object files 
@@ -40,12 +40,23 @@ SOURCES_CRYPTO=${SRC}/util/crypto/*.cpp
 OBJECTS_CRYPTO=${SRC}/util/crypto/*.o
 SOURCES_HASHING=${SRC}/hashing/*.cpp
 OBJECTS_HASHING=${SRC}/hashing/*.o
+SOURCES_FILTER=${SRC}/util/cuckoo_filter/*.cc
+OBJECTS_FILTER=${SRC}/util/cuckoo_filter/*.o
 # naive hashing-based solution
 SOURCES_NAIVE=${SRC}/naive-hashing/*.cpp
 OBJECTS_NAIVE=${SRC}/naive-hashing/*.o
 # public-key-based PSI
 SOURCES_DHPSI=${SRC}/pk-based/*.cpp
 OBJECTS_DHPSI=${SRC}/pk-based/*.o
+# public-key-based PSI (gattaca)
+SOURCES_DHPSI_GATTACA=${SRC}/pk-based_gattaca/*.cpp
+OBJECTS_DHPSI_GATTACA=${SRC}/pk-based_gattaca/*.o
+# public-key-based PSI (optimized)
+SOURCES_DHPSI_OPTIMIZED=${SRC}/pk-based_optimized/*.cpp
+OBJECTS_DHPSI_OPTIMIZED=${SRC}/pk-based_optimized/*.o
+# generate-filter
+SOURCES_DH_GENERATE_FILTER=${SRC}/generate_filter/*.cpp
+OBJECTS_DH_GENERATE_FILTER=${SRC}/generate_filter/*.o
 # third-party-based PSI
 SOURCES_SERVERAIDED=${SRC}/server-aided/*.cpp
 OBJECTS_SERVERAIDED=${SRC}/server-aided/*.o
@@ -66,20 +77,19 @@ all: miracl core bench demo
 
 core: ${OBJECTS_CORE}
 
-%.o:%.cpp %.h
+%.o:%.cpp %.h 
 	${CC} $< ${COMPILER_OPTIONS} ${DEBUG_OPTIONS} -c ${INCLUDE} ${LIBRARIES} ${CFLAGS} ${BATCH} -o $@
 
 bench:  
-	${CC} -o psi.exe ${SRC}/mains/bench_psi.cpp ${OBJECTS_DHPSI} ${OBJECTS_OTPSI} ${OBJECTS_NAIVE} ${OBJECTS_SERVERAIDED} ${OBJECTS_UTIL} ${OBJECTS_HASHING} ${OBJECTS_CRYPTO} ${OBJECTS_OT} ${OBJECTS_MIRACL} ${CFLAGS} ${DEBUG_OPTIONS} ${LIBRARIES} ${MIRACL_LIB} ${INCLUDE} ${COMPILER_OPTIONS}
+	${CC} -o psi.exe ${SRC}/mains/bench_psi.cpp ${OBJECTS_DHPSI_GATTACA} ${OBJECTS_DHPSI_OPTIMIZED} ${OBJECTS_DH_GENERATE_FILTER} ${OBJECTS_DHPSI} ${OBJECTS_OTPSI} ${OBJECTS_NAIVE} ${OBJECTS_SERVERAIDED} ${OBJECTS_UTIL} ${OBJECTS_HASHING} ${OBJECTS_CRYPTO} ${OBJECTS_OT} ${OBJECTS_FILTER} ${OBJECTS_MIRACL} ${CFLAGS} ${DEBUG_OPTIONS} ${LIBRARIES} ${MIRACL_LIB} ${INCLUDE} ${COMPILER_OPTIONS} 
 
 demo:  
-	${CC} -o demo.exe ${SRC}/mains/psi_demo.cpp ${OBJECTS_DHPSI} ${OBJECTS_OTPSI} ${OBJECTS_NAIVE} ${OBJECTS_SERVERAIDED} ${OBJECTS_UTIL} ${OBJECTS_HASHING} ${OBJECTS_CRYPTO} ${OBJECTS_OT} ${OBJECTS_MIRACL} ${CFLAGS} ${DEBUG_OPTIONS} ${LIBRARIES} ${MIRACL_LIB} ${INCLUDE} ${COMPILER_OPTIONS}
+	${CC} -o demo.exe ${SRC}/mains/psi_demo.cpp ${OBJECTS_DHPSI_GATTACA} ${OBJECTS_DHPSI_OPTIMIZED} ${OBJECTS_DH_GENERATE_FILTER} ${OBJECTS_DHPSI} ${OBJECTS_OTPSI} ${OBJECTS_NAIVE} ${OBJECTS_SERVERAIDED} ${OBJECTS_UTIL} ${OBJECTS_HASHING} ${OBJECTS_CRYPTO} ${OBJECTS_OT} ${OBJECTS_FILTER} ${OBJECTS_MIRACL} ${CFLAGS} ${DEBUG_OPTIONS} ${LIBRARIES} ${MIRACL_LIB} ${INCLUDE} ${COMPILER_OPTIONS} 
 
 test: core
-	${CC} -o test.exe ${SRC}/mains/test_psi.cpp ${OBJECTS_DHPSI} ${OBJECTS_OTPSI} ${OBJECTS_NAIVE} ${OBJECTS_SERVERAIDED} ${OBJECTS_UTIL} ${OBJECTS_HASHING} ${OBJECTS_CRYPTO} ${OBJECTS_OT} ${OBJECTS_MIRACL} ${CFLAGS} ${DEBUG_OPTIONS} ${LIBRARIES} ${MIRACL_LIB} ${INCLUDE} ${COMPILER_OPTIONS} 
+	${CC} -o test.exe ${SRC}/mains/test_psi.cpp ${OBJECTS_DHPSI_GATTACA} ${OBJECTS_DHPSI_OPTIMIZED} ${OBJECTS_DH_GENERATE_FILTER} ${OBJECTS_DHPSI} ${OBJECTS_OTPSI} ${OBJECTS_NAIVE} ${OBJECTS_SERVERAIDED} ${OBJECTS_UTIL} ${OBJECTS_HASHING} ${OBJECTS_CRYPTO} ${OBJECTS_OT} ${OBJECTS_FILTER} ${OBJECTS_MIRACL} ${CFLAGS} ${DEBUG_OPTIONS} ${LIBRARIES} ${MIRACL_LIB} ${INCLUDE} ${COMPILER_OPTIONS} 
 	./test.exe -r 0 -t 10 & 
 	./test.exe -r 1 -t 10
-
 
 cuckoo:  
 	${CC} -o cuckoo.exe ${SRC}/mains/cuckoo_analysis.cpp ${OBJECTS_UTIL} ${OBJECTS_HASHING} ${OBJECTS_CRYPTO} ${OBJECTS_MIRACL} ${CFLAGS} ${DEBUG_OPTIONS} ${LIBRARIES} ${MIRACL_LIB} ${INCLUDE} ${COMPILER_OPTIONS}
@@ -95,7 +105,7 @@ ${MIRACL_LIB_DIR}/miracl.a: ${SOURCES_MIRACL}
 
 # only clean example objects, test object and binaries
 clean:
-	rm -f ${OBJECTS_EXAMPLE} ${OBJECTS_TEST} *.exe ${OBJECTS_DHPSI} ${OBJECTS_OTPSI} ${OBJECTS_HASHING} ${OBJECTS_CRYPTO} ${OBJECTS_NAIVE} ${OBJECTS_SERVERAIDED} ${OBJECTS_UTIL} ${OBJECTS_CRYPTO} ${OBJECTS_OT}
+	rm -f ${OBJECTS_EXAMPLE} ${OBJECTS_TEST} *.exe ${OBJECTS_DHPSI_GATTACA} ${OBJECTS_DHPSI_OPTIMIZED} ${OBJECTS_DH_GENERATE_FILTER}  ${OBJECTS_DHPSI} ${OBJECTS_OTPSI} ${OBJECTS_HASHING} ${OBJECTS_CRYPTO} ${OBJECTS_NAIVE} ${OBJECTS_SERVERAIDED} ${OBJECTS_UTIL} ${OBJECTS_CRYPTO} ${OBJECTS_OT} ${OBJECTS_FILTER}
 
 # this will clean everything: example objects, test object and binaries and the Miracl library
 cleanall: clean

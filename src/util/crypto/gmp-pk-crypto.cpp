@@ -61,6 +61,14 @@ void gmp_num::set_mul(num* a, num* b) {
 	mpz_mul(val, *num2mpz(a), *num2mpz(b));
 }
 
+void gmp_num::set_inv(num** x, num* n, num** w, uint32_t qtd) {
+//implementar	
+}
+
+void gmp_num::set_inv_1(num** x, num* n, num** w){
+//implementar  
+}
+
 void gmp_num::import_from_bytes(uint8_t* buf, uint32_t field_size) {
 	mpz_import(val, field_size, 1, sizeof((buf)[0]), 0, 0, (buf));
 }
@@ -77,6 +85,10 @@ num* prime_field::get_rnd_num(uint32_t bitlen) {
 	mpz_init(val);
 	mpz_urandomm(val, rnd_state, q); //sample_rnd_mpz_t(val, bits, fp);
 	return new gmp_num(this, val);
+}
+
+num* prime_field::get_rnd_num_1() {
+//falta implementar
 }
 
 fe* prime_field::get_rnd_fe(uint32_t bitlen) {
@@ -142,6 +154,19 @@ void gmp_fe::sample_fe_from_bytes(uint8_t* buf, uint32_t bytelen) {
 	mpz_mod(val, val, *field->get_p());
 }
 
+num* prime_field::get_order(){
+//falta implementar
+return new gmp_num(this, q);}
+
+// Só para testar ----------------------------
+num* prime_field::get_server_exp(){
+//falta implementar
+return new gmp_num(this, q);} 
+
+//------------------------------------------
+//num* prime_field::get_big2num();
+//return new gmp_num(this, 0);}
+//}
 
 num* prime_field::get_num() {
 	return new gmp_num(this);

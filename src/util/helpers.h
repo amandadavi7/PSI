@@ -25,7 +25,7 @@
 //#define PRINT_EXP                    // Print the exponents and in some cases the points of the curve. It is not print the points correctly
 //#define TIMING_INDIVIDUAL_EXPO       // Print the individual time of each exponentiation
 //#define PRINT_HASHES                 // Print the HASHES
-//#define PRINT_INTERSECTION           // Print the values from the intersection.
+//#define PRINT_INTERSECTION           // Print the values from the intersection. Needs to be fixed
 //#define TIMING_DH_INVERSE            // Print the time to compute the inverser of all exponents
 //#define CYCLES		       // Print the amount of cycles of the exponentiation operation
 #define BASIC_PROTOCOLS             // Must be used when you want to execute the protocols 0, 1, 2 and 6. For execute the protocol 3, 4 and 5 this option must be commented

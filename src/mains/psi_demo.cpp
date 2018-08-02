@@ -157,9 +157,11 @@ int32_t psi_demonstrator(int32_t argc, char** argv) {
 #ifndef PREPROCESSING
 
 	if(role == CLIENT) {
-		cout << "Computation finished. Found " << intersect_size << " intersecting elements:" << endl;
+		cout << "Computation finished. Found " << intersect_size << " intersecting elements";
 
 #ifdef PRINT_INTERSECTION
+
+		cout << ":" << "\n";
 
 		for(i = 0; i < intersect_size; i++) {
 			for(j = 0; j < res_bytelens[i]; j++) {
@@ -169,6 +171,10 @@ int32_t psi_demonstrator(int32_t argc, char** argv) {
 		}
 #endif
 
+#ifndef PRINT_INTERSECTION
+		cout << ".\n";
+#endif		
+
 		for(i = 0; i < intersect_size; i++) {
 			free(intersection[i]);
 		}
@@ -177,6 +183,11 @@ int32_t psi_demonstrator(int32_t argc, char** argv) {
 
 	}
 #endif
+
+#ifdef PREPROCESSING
+	cout << "Preprocessing phase finished." << "\n";
+#endif
+
 	for(i = 0; i < sockfd.size(); i++) {
 		bytes_sent += sockfd[i].get_bytes_sent();
 		bytes_received += sockfd[i].get_bytes_received();

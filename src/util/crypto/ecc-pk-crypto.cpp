@@ -412,13 +412,10 @@ void ecc_num::set_mul(num* a, num* b) {
 }
 
 void ecc_num::set_inv(num** x, num* n, num** w, uint32_t qtd) {
-//	cout <<"*Entering in te set_inv()****"<< qtd << endl;
 	Big *x1 = new Big[qtd];
 	Big *w1 = new Big[qtd];
-//	val = new Big[qtd];
 
 	for(int i = 0; i<qtd; i++){
-//	    x[i]->print();
 	    x1[i] = *((ecc_num*) x[i])->get_val();
 	}
 
@@ -426,14 +423,10 @@ void ecc_num::set_inv(num** x, num* n, num** w, uint32_t qtd) {
 	
 	for(int i = 0; i<qtd; i++){
 	    w[i] = (num*) new ecc_num ( this->field, &w1[i]);
-//	    w[i]->print();
 	}
 
 	delete[] x1;
-	delete[] w1;
-	
-//	cout <<"****Saindo do set_inv()****"<<endl;
-
+	delete[] w1;	
 }
 
 // Just for tests--------------------------------------
@@ -442,7 +435,6 @@ void ecc_num::set_inv_1(num** x, num* n, num** w) {
 	Big inv = (Big)1;
         inv = inverse(*((ecc_num*)x[0])->get_val(), *num2Big(n));
 	w[0] = (num*) new ecc_num (this->field, &inv);
-//	w[0]->print();
 }
 //--------------------------------------------------
 

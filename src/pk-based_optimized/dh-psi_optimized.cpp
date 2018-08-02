@@ -355,10 +355,11 @@ uint32_t dhpsi_optimized(role_type role, uint32_t neles, uint32_t pneles, task_c
 #endif
 
 		for (i = 0; i < neles; i++) {
-		      if (filter_hashes.ContainPSI(buffer_filter[i]->GetHashFilter(fe_bytes)) == cuckoofilter::Ok)
+		      if (filter_hashes.ContainPSI(buffer_filter[i]->GetHashFilter(fe_bytes)) == cuckoofilter::Ok){
 			    matches[intersect_ctr] = i;
 			    intersect_ctr++;
 			    intersect_size_aux++;
+		      }    
 		}
 
 		intersect_size = intersect_size_aux;

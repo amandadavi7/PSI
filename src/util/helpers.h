@@ -611,35 +611,41 @@ static uint32_t find_intersection(uint8_t* hashes, uint32_t neles, uint8_t* phas
 */
 //Cuckoo filter is slower than the approach above
 	uint32_t size_intersect, i, j, intersect_size_aux=0, intersect_ctr=0;
+    uint32_t* invperm = (uint32_t*) malloc(sizeof(uint32_t) * neles);
 
-	cuckoofilter::CuckooFilter<ItemFilter, 32> filter_hashes(neles);
 
-	ItemFilter** buffer_filter_c = new ItemFilter*[neles];
+	cuckoofilter::CuckooFilter<ItemFilter, 32> filter_hashes(pneles);
 
-	for(i=0;i<neles;i++)
-		 buffer_filter_c[i] = new ItemFilter(&hashes[i*hashbytelen], hashbytelen);
+	ItemFilter** buffer_filter_c = new ItemFilter*[pneles];
 
-	for(i=0;i<neles;i++) {
+	for(i = 0; i < neles; i++) {
+		invperm[perm[i]] = i;
+	}
+
+	for(i=0;i<pneles;i++)
+		 buffer_filter_c[i] = new ItemFilter(&phashes[i*hashbytelen], hashbytelen);
+
+	for(i=0;i<pneles;i++) {
 		cuckoofilter::Status status = filter_hashes.AddPSI(buffer_filter_c[i]->GetHashFilter(hashbytelen));
 		if ( status != cuckoofilter::Ok)
 			 cout<< "Problem in add here: \n"<< status<< "\n";
 	}
 
-	for(i=0;i<neles;i++)
+	for(i=0;i<pneles;i++)
 		delete buffer_filter_c[i];
 
 	delete[] buffer_filter_c;
 
 //	std::cout << "Info: "<< filter_hashes.Info() << std::endl;
 
-	ItemFilter** buffer_filter_s = new ItemFilter*[pneles];
+	ItemFilter** buffer_filter_s = new ItemFilter*[neles];
 
-	for(i=0;i<pneles;i++)
-	      buffer_filter_s[i] = new ItemFilter(&phashes[i*hashbytelen],hashbytelen);
+	for(i=0;i<neles;i++)
+	      buffer_filter_s[i] = new ItemFilter(&hashes[i*hashbytelen],hashbytelen);
 
-	for (i = 0; i < pneles; i++) {
+	for (i = 0; i < neles; i++) {
 	      if (filter_hashes.ContainPSI(buffer_filter_s[i]->GetHashFilter(hashbytelen)) == cuckoofilter::Ok){
-		    matches[intersect_ctr] = i;
+		    matches[intersect_ctr] = invperm[i];
 		    intersect_ctr++;
 		    intersect_size_aux++;
 	      }
@@ -647,7 +653,7 @@ static uint32_t find_intersection(uint8_t* hashes, uint32_t neles, uint8_t* phas
 
 	size_intersect = intersect_size_aux;
 
-	for(i=0;i<pneles;i++)
+	for(i=0;i<neles;i++)
 	      delete buffer_filter_s[i];
 
 	delete[] buffer_filter_s;

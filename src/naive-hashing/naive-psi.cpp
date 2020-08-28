@@ -163,12 +163,8 @@ uint32_t naivepsi(role_type role, uint32_t neles, uint32_t pneles, task_ctx ectx
 	
 	if(role == SERVER) {
 		intersect_size = 0;
-	} else {//This is important to control the false positive rate
-		if(neles > pneles){
-			intersect_size = find_intersection(hashes, neles, phashes, pneles, maskbytelen, perm, matches);		
-		} else{
-			intersect_size = find_intersection(phashes, pneles, hashes, neles, maskbytelen, perm, matches);
-		}
+	} else {
+        intersect_size = find_intersection(hashes, neles, phashes, pneles, maskbytelen, perm, matches);
 	}
 	
 #ifdef TIMING_OPERATION

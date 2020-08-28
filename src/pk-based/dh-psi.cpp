@@ -219,20 +219,16 @@ uint32_t dhpsi(role_type role, uint32_t neles, uint32_t pneles, task_ctx ectx, c
 #ifdef DEBUG
 	cout << "Finding intersection" << endl;
 #endif
-	if(role == SERVER) {
-		intersect_size = 0;
 
-	} else {//This is important to control the false positive rate
-
-	        
 #ifdef TIMING_OPERATION
 	     gettimeofday(&t_start, NULL);
 #endif
-	     if(neles > pneles){
-		  intersect_size = find_intersection(hashes, neles, phashes, pneles, hash_bytes, perm, matches);		
-	     } else{
-		  intersect_size = find_intersection(phashes, pneles, hashes, neles, hash_bytes, perm, matches);
-	     }	
+
+	if(role == SERVER) {
+		intersect_size = 0;
+
+	} else {
+        intersect_size = find_intersection(hashes, neles, phashes, pneles, hash_bytes, perm, matches);
 	}	
 	
 #ifdef TIMING_OPERATION

@@ -532,7 +532,7 @@ uint32_t dhpsi_gattaca(role_type role, uint32_t neles, uint32_t pneles, task_ctx
 
 #ifdef PRINT_HASHES
 
-            cout << "Second client hash" << endl;
+        cout << "Second client hash" << endl;
 	    count =  neles * hash_bytes;
 	    aux = hash_bytes;
 	    for(i = 0; i<count ; i++){
@@ -551,7 +551,7 @@ uint32_t dhpsi_gattaca(role_type role, uint32_t neles, uint32_t pneles, task_ctx
 	     free(s_encrypted_eles);
 	     free(s_hashes);
 	     free(s_peles);
-	} else {//This is important to control the false positive rate
+	} else {
 
 #ifdef MASKBYTELEN
 	     hash_bytes = ceil_divide(crypt_env->get_seclvl().statbits + ceil_log2(neles) + ceil_log2(pneles), 8);
@@ -589,11 +589,7 @@ uint32_t dhpsi_gattaca(role_type role, uint32_t neles, uint32_t pneles, task_ctx
 #ifdef TIMING_OPERATION
 	     gettimeofday(&t_start, NULL);
 #endif
-	     if(neles > pneles){
 		   intersect_size = find_intersection(c_hashes, neles, server_data_rcv, pneles, hash_bytes, perm, matches);
-	     } else{
-		   intersect_size = find_intersection(server_data_rcv, pneles, c_hashes, neles, hash_bytes, perm, matches);
-	     }
 
 #ifdef TIMING_OPERATION
 	     gettimeofday(&t_end, NULL);

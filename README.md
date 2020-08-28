@@ -104,11 +104,11 @@ and in the second terminal:
 This should print the following output in the second terminal: 
 
 `	Computation finished. Found 5 intersecting elements:`
-`	2124136828					    `
-`	1612261203					    `
-`	1819477783					    `
-`	1980673634					    `
-`	0336775411					    `
+`	1521395961					    `
+`	2049284277					    `
+`	2109400902					    `
+`	2048270713					    `
+`	0362147482					    `
 
 For further information about the program options, run ```./demo.exe -h```.
 

@@ -54,6 +54,7 @@ uint32_t dhpsi_optimized(role_type role, uint32_t neles, uint32_t pneles, task_c
 	num_byte = field->num_byte_size();
 	uint32_t* perm = (uint32_t*) malloc(sizeof(uint32_t) * neles);
 	uint32_t* cardinality_perm = (uint32_t*) malloc(sizeof(uint32_t) * neles);
+    uint32_t* invperm = (uint32_t*) malloc(sizeof(uint32_t) * neles);
 	uint8_t* c_encrypted_eles, *s_peles, *c_eles, *f_s_hashes, *f_c_hashes, *server_data_send;
 	uint8_t buffer[num_byte];
 
@@ -354,9 +355,12 @@ uint32_t dhpsi_optimized(role_type role, uint32_t neles, uint32_t pneles, task_c
 	    	gettimeofday(&t_start, NULL);
 #endif
 
+        for(i = 0; i < neles; i++)
+            invperm[perm[i]] = i;
+
 		for (i = 0; i < neles; i++) {
 		      if (filter_hashes.ContainPSI(buffer_filter[i]->GetHashFilter(fe_bytes)) == cuckoofilter::Ok){
-			    matches[intersect_ctr] = i;
+			    matches[intersect_ctr] = invperm[i];
 			    intersect_ctr++;
 			    intersect_size_aux++;
 		      }    
@@ -389,6 +393,7 @@ uint32_t dhpsi_optimized(role_type role, uint32_t neles, uint32_t pneles, task_c
 
 	free(perm);
 	free(cardinality_perm);
+    free(invperm);
 
 	return intersect_size;
 }

@@ -67,6 +67,7 @@ public:
 
 	void set_mul(fe* a, fe* b);
 	void set_pow(fe* b, num* e);
+        void set_pow_var(fe* b, num* e);
 	void set_div(fe* a, fe* b);
 	void set_double_pow_mul(fe* b1, num* e1, fe* b2, num* e2);
 	void export_to_bytes(uint8_t* buf);
@@ -89,9 +90,13 @@ public:
 	void set(num* src);
 	void set_si(int32_t src);
 	void set_add(num* a, num* b);
+	void set_sub(num* a, num* b);		
 	void set_mul(num* a, num* b);
+	void set_mul_mod(num* a, num* b);		
 	void set_inv(num** x, num* n, num** w, uint32_t qtd);
 	void set_inv_1(num** x, num* n, num** w);
+	int isnegative(num* x);
+	void mod(num* x);
 
 	mpz_t* get_val();
 

@@ -55,9 +55,13 @@ void crypto::init(uint32_t symsecbits, uint8_t* seed) {
 		sha_hash_buf = (uint8_t*) malloc(SHA1_OUT_BYTES);
 	} else if (secparam.symbits == MT.symbits) {
 		hash_routine = &sha256_hash;
+		hash_routine_double = &sha256_hash_double;
+		hash_routine_mult = &sha256_hash_mult;
 		sha_hash_buf = (uint8_t*) malloc(SHA256_OUT_BYTES);
 	} else if (secparam.symbits == LT.symbits) {
 		hash_routine = &sha256_hash;
+		hash_routine_double = &sha256_hash_double;
+		hash_routine_mult = &sha256_hash_mult;
 		sha_hash_buf = (uint8_t*) malloc(SHA256_OUT_BYTES);
 	} else if (secparam.symbits == XLT.symbits) {
 		hash_routine = &sha512_hash;
@@ -67,6 +71,8 @@ void crypto::init(uint32_t symsecbits, uint8_t* seed) {
 		sha_hash_buf = (uint8_t*) malloc(SHA512_OUT_BYTES);
 	} else {
 		hash_routine = &sha256_hash;
+		hash_routine_double = &sha256_hash_double;
+		hash_routine_mult = &sha256_hash_mult;
 		sha_hash_buf = (uint8_t*) malloc(SHA256_OUT_BYTES);
 	}
 }
@@ -265,6 +271,14 @@ void crypto::hash(uint8_t* resbuf, uint32_t noutbytes, uint8_t* inbuf, uint32_t 
 	hash_routine(resbuf, noutbytes, inbuf, ninbytes, tmpbuf);
 }
 
+void crypto::hash_double(uint8_t* resbuf, uint32_t noutbytes, uint8_t* inbuf1, uint8_t* inbuf2, uint32_t ninbytes1, uint32_t ninbytes2, uint8_t* tmpbuf) {
+	hash_routine_double(resbuf, noutbytes, inbuf1, inbuf2, ninbytes1, ninbytes2, tmpbuf);
+}
+
+void crypto::hash_mult(uint8_t* resbuf, uint32_t noutbytes, uint8_t* inbuf1, uint8_t* inbuf2, uint8_t* inbuf3, uint32_t ninbytes, uint8_t* tmpbuf) {
+	hash_routine_mult(resbuf, noutbytes, inbuf1, inbuf2, inbuf3, ninbytes, tmpbuf);
+}
+
 //A fixed-key hashing scheme that uses AES, should not be used for real hashing, hashes to AES_BYTES bytes
 void crypto::fixed_key_aes_hash(AES_KEY_CTX* aes_key, uint8_t* resbuf, uint32_t noutbytes, uint8_t* inbuf, uint32_t ninbytes) {
 	uint32_t i;
@@ -314,7 +328,7 @@ void crypto::gen_rnd_perm(uint32_t* perm, uint32_t neles) {
 	uint32_t i, j;
 	//TODO Generate random numbers (CAREFUL: NOT UNIFORM)
 	gen_rnd((uint8_t*) rndbuf, sizeof(uint32_t) * neles);
-	
+
 	for(i = 0; i < neles; i++) {
 		perm[i] = i;
 	}
@@ -386,9 +400,9 @@ void sha1_hash(uint8_t* resbuf, uint32_t noutbytes, uint8_t* inbuf, uint32_t nin
 	SHA1_Init(&sha);
 	SHA1_Update(&sha, inbuf, ninbytes);
 	SHA1_Final(hash_buf, &sha);
-	
+
 //	cout << "SHA1" <<endl;
-	
+
 #ifdef PRINT_HASHES
 	cout << "SHA1 hashes: " << '\n';
 	for (unsigned int i = 0; i<noutbytes; i++)
@@ -407,9 +421,42 @@ void sha256_hash(uint8_t* resbuf, uint32_t noutbytes, uint8_t* inbuf, uint32_t n
 	SHA256_Update(&sha, inbuf, ninbytes);
 	SHA256_Final(hash_buf, &sha);
 //	cout << "SHA256" <<endl;
-	
+
 #ifdef PRINT_HASHES
 	cout << "SHA256 hashes: " << '\n';
+	for (unsigned int i = 0; i<noutbytes; i++)
+		printf("%02x", hash_buf[i]);
+	cout << "\n";
+#endif
+	memcpy(resbuf, hash_buf, noutbytes);
+}
+
+void sha256_hash_double(uint8_t* resbuf, uint32_t noutbytes, uint8_t* inbuf1, uint8_t* inbuf2, uint32_t ninbytes1, uint32_t ninbytes2, uint8_t* hash_buf) {
+	SHA256_CTX sha;
+	SHA256_Init(&sha);
+	SHA256_Update(&sha, inbuf1, ninbytes1);
+	SHA256_Update(&sha, inbuf2, ninbytes2);
+	SHA256_Final(hash_buf, &sha);
+
+#ifdef PRINT_HASHES
+	cout << "SHA256 hashes for 3 elements: " << '\n';
+	for (unsigned int i = 0; i<noutbytes; i++)
+		printf("%02x", hash_buf[i]);
+	cout << "\n";
+#endif
+	memcpy(resbuf, hash_buf, noutbytes);
+}
+
+void sha256_hash_mult(uint8_t* resbuf, uint32_t noutbytes, uint8_t* inbuf1, uint8_t* inbuf2, uint8_t* inbuf3, uint32_t ninbytes, uint8_t* hash_buf) {
+	SHA256_CTX sha;
+	SHA256_Init(&sha);
+	SHA256_Update(&sha, inbuf1, ninbytes);
+	SHA256_Update(&sha, inbuf2, ninbytes);
+	SHA256_Update(&sha, inbuf3, ninbytes);
+	SHA256_Final(hash_buf, &sha);
+
+#ifdef PRINT_HASHES
+	cout << "SHA256 hashes for 3 elements: " << '\n';
 	for (unsigned int i = 0; i<noutbytes; i++)
 		printf("%02x", hash_buf[i]);
 	cout << "\n";
@@ -423,7 +470,7 @@ void sha512_hash(uint8_t* resbuf, uint32_t noutbytes, uint8_t* inbuf, uint32_t n
 	SHA512_Update(&sha, inbuf, ninbytes);
 	SHA512_Final(hash_buf, &sha);
 //	cout << "SHA512" <<endl;
-	
+
 #ifdef PRINT_HASHES
 	cout << "SHA512 hashes: " << '\n';
 	for (unsigned int i = 0; i<noutbytes; i++)

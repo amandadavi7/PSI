@@ -224,7 +224,7 @@ uint32_t dhpsi_gattaca(role_type role, uint32_t neles, uint32_t pneles, task_ctx
 	      gettimeofday(&t_start, NULL);
 #endif
 
-      	      snd_and_rcv(s_hashes, neles * hash_bytes, NULL, NULL, tmpsock);
+          snd_and_rcv(s_hashes, neles * hash_bytes, NULL, NULL, tmpsock);
 
 #ifdef TIMING_OPERATION
 	      gettimeofday(&t_end, NULL);
@@ -269,8 +269,8 @@ uint32_t dhpsi_gattaca(role_type role, uint32_t neles, uint32_t pneles, task_ctx
 
 	      fclose(arq_key);
 
-              ectx.eles.input1d = s_peles;
-              ectx.eles.nelements = pneles;
+          ectx.eles.input1d = s_peles;
+          ectx.eles.nelements = pneles;
 	      ectx.eles.output = s_peles;
 	      ectx.actx.exponent = exponent;
 	      ectx.eles.fixedbytelen = fe_bytes;
@@ -280,7 +280,7 @@ uint32_t dhpsi_gattaca(role_type role, uint32_t neles, uint32_t pneles, task_ctx
 	      ectx.actx.sample = false;
 
 #ifdef TIMING_OPERATION
-              gettimeofday(&t_start, NULL);
+          gettimeofday(&t_start, NULL);
 #endif
 	      run_task(ntasks, ectx, asym_encrypt);
 
@@ -293,7 +293,7 @@ uint32_t dhpsi_gattaca(role_type role, uint32_t neles, uint32_t pneles, task_ctx
 	      sndbufsize = pneles * fe_bytes;
 
 #ifdef TIMING_OPERATION
-              gettimeofday(&t_start, NULL);
+          gettimeofday(&t_start, NULL);
 #endif
 	      snd_and_rcv(s_peles, sndbufsize, NULL, 0, tmpsock);
 
@@ -394,18 +394,17 @@ uint32_t dhpsi_gattaca(role_type role, uint32_t neles, uint32_t pneles, task_ctx
 	      hash_bytes = crypt_env->get_hash_bytes();
 #endif
 
-              server_data_rcv =  (uint8_t*) malloc(sizeof(uint8_t) * pneles * hash_bytes);
+          server_data_rcv =  (uint8_t*) malloc(sizeof(uint8_t) * pneles * hash_bytes);
 
 #ifdef TIMING_OPERATION
 	      gettimeofday(&t_start, NULL);
 #endif
 
-      	      snd_and_rcv(c_encrypted_eles, neles * fe_bytes, NULL, 0, tmpsock);
+          snd_and_rcv(c_encrypted_eles, neles * fe_bytes, NULL, 0, tmpsock);
 //	      snd_and_rcv(c_encrypted_eles, neles * fe_bytes, server_data_rcv, pneles * hash_bytes, tmpsock);
 
 #ifdef TIMING_OPERATION
 	      gettimeofday(&t_end, NULL);
-//     	      cout << "Time for the client to receive the database (ts_i) and to send (H(r_i))^Ri: \t" << fixed << std::setprecision(PRECISION) << getMillies(t_start, t_end) << "ms" << endl;
 	      cout << "Time for the client to send (H(r_i))^Ri: \t" << fixed << std::setprecision(PRECISION) << getMillies(t_start, t_end) << "ms" << endl;
 #endif
 
@@ -434,8 +433,8 @@ uint32_t dhpsi_gattaca(role_type role, uint32_t neles, uint32_t pneles, task_ctx
 	      arq = fopen("database_gattaca", "wb");
 
 	      if(arq == NULL){
-		cout << "Database opening problem" << endl;
-		exit(1);
+              cout << "Database opening problem" << endl;
+		      exit(1);
 	      }
 
 #ifdef TIMING_OPERATION
@@ -447,9 +446,8 @@ uint32_t dhpsi_gattaca(role_type role, uint32_t neles, uint32_t pneles, task_ctx
 	     gettimeofday(&t_end, NULL);
 	     cout <<"Time for write the base on the file: \t" << fixed << std::setprecision(PRECISION) << getMillies(t_start, t_end) << "ms" << endl;
 #endif
-	      if(pneles != total){
-		  cout<< "Database writting problem" << endl;
-	      }
+	      if(pneles != total)
+		      cout<< "Database writting problem" << endl;
 
 	      fclose(arq);
 
@@ -481,9 +479,8 @@ uint32_t dhpsi_gattaca(role_type role, uint32_t neles, uint32_t pneles, task_ctx
 #ifdef TIMING_OPERATION
 	     gettimeofday(&t_start, NULL);
 #endif
-	     for(i=0; i<neles;i++){
-		  ectx.actx.v_exponent[i] = exponent_aux[i];
-	     }
+	     for(i=0; i<neles;i++)
+		     ectx.actx.v_exponent[i] = exponent_aux[i];
 
 	     run_task(ntasks, ectx, asym_encrypt_inverse);
 
@@ -580,7 +577,7 @@ uint32_t dhpsi_gattaca(role_type role, uint32_t neles, uint32_t pneles, task_ctx
 	      cout << "Time for read data from  the file: \t"<< fixed << std::setprecision(PRECISION) << getMillies(t_start, t_end) << "ms" << endl;
 #endif
 	      if (output_count !=pneles){
-		    cout << "output_count: " << output_count << " and pneles: " << pneles << endl;
+            cout << "output_count: " << output_count << " and pneles: " << pneles << endl;
 		    cout << "Database reading problem" << endl;
 	      }
 
@@ -589,16 +586,15 @@ uint32_t dhpsi_gattaca(role_type role, uint32_t neles, uint32_t pneles, task_ctx
 #ifdef TIMING_OPERATION
 	     gettimeofday(&t_start, NULL);
 #endif
-		   intersect_size = find_intersection(c_hashes, neles, server_data_rcv, pneles, hash_bytes, perm, matches);
+		 intersect_size = find_intersection(c_hashes, neles, server_data_rcv, pneles, hash_bytes, perm, matches);
 
 #ifdef TIMING_OPERATION
 	     gettimeofday(&t_end, NULL);
 	     cout << "Time for found the intersection: \t" << fixed << std::setprecision(PRECISION) << getMillies(t_start, t_end) << "ms" << endl;
 #endif
 
-	     for(i=0;i<neles;i++){
-		  delete ectx.actx.v_exponent[i];
-	     }
+	     for(i=0;i<neles;i++)
+            delete ectx.actx.v_exponent[i];
 
 	     free(c_encrypted_eles);
 	     free(c_eles);

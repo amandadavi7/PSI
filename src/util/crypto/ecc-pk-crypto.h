@@ -22,6 +22,11 @@
 #define MAXMSGSAMPLE 256
 
 
+#define GLS254
+//#define DEBUG_ECC
+#define COMPRESSION
+
+
 struct ecc_fparams {
 	Big* BA;
 	Big* BB;
@@ -95,9 +100,15 @@ public:
 	void set(num* src);
 	void set_si(int32_t src);
 	void set_add(num* a, num* b);
+	void set_sub(num* a, num* b);
 	void set_mul(num* a, num* b);
+	void set_mul_mod(num* a, num* b);	
 	void set_inv(num** x, num* n, num** w, uint32_t qtd);
 	void set_inv_1(num** x, num* n, num** w);
+	int isnegative(num* x);
+	void mod(num* x);
+
+
 
 	Big* get_val();
 //	void set_val(Big *b){val= b;};
@@ -122,13 +133,30 @@ public:
 	EC2* get_val();
 	void set_mul(fe* a, fe* b);
 	void set_pow(fe* b, num* e);
+        void set_pow_var(fe* b, num* e);
 	void set_div(fe* a, fe* b);
 	void set_double_pow_mul(fe* b1, num* e1, fe* b2, num* e2);
 	void export_to_bytes(uint8_t* buf);
 	void import_from_bytes(uint8_t* buf);
 	void sample_fe_from_bytes(uint8_t* buf, uint32_t bytelen);
 
-	void print() {cout << (*val) << endl;};
+	void print() {
+	    
+	      #ifdef COMPRESSION        
+		for(uint8_t i = 0; i<32; i++){
+		    printf("%02x", (point[i]));
+		}
+	      #else      
+	        for(uint8_t i = 0; i<32; i++){
+		    printf("%02x", (point[i]));
+		}
+		printf(",");
+		for(uint8_t i = 32; i<64; i++){
+		    printf("%02x", (point[i]));
+	      }
+	      #endif
+	      cout << endl;
+	};
 
 
 private:

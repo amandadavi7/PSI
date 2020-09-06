@@ -20,7 +20,7 @@ int32_t psi_demonstrator(int32_t argc, char** argv) {
 			pnelements, *elebytelens, *res_bytelens, nclients = 2;
 	uint16_t port=7766;
 	uint8_t **elements, **intersection;
-	bool detailed_timings=false;
+	bool detailed_timings=true;
 	string address="127.0.0.1";
 	timeval t_start, t_end;
 	vector<CSocket> sockfd(ntasks);
@@ -138,10 +138,16 @@ int32_t psi_demonstrator(int32_t argc, char** argv) {
 				sockfd.data(), ntasks);
 	break;
 
+	case GENERATE_COUNTING_QUOTIENT_FILTER:
+				dhgenerate_counting_quotient_filter(role, nelements, pnelements, elebytelens, elements, &intersection, &res_bytelens, &crypto,
+				sockfd.data(), ntasks);
+	break;
+
 	case DH_ECC_OPTIMIZED:
 		intersect_size = dhpsi_optimized(role, nelements, pnelements, elebytelens, elements, &intersection, &res_bytelens, &crypto,
 				sockfd.data(), ntasks);
 		break;
+
 	case OT_PSI:
 		intersect_size = otpsi(role, nelements, pnelements, elebytelens, elements, &intersection, &res_bytelens,
 				&crypto, sockfd.data(), ntasks, epsilon, detailed_timings);
@@ -173,7 +179,7 @@ int32_t psi_demonstrator(int32_t argc, char** argv) {
 
 #ifndef PRINT_INTERSECTION
 		cout << ".\n";
-#endif		
+#endif
 
 		for(i = 0; i < intersect_size; i++) {
 			free(intersection[i]);
@@ -276,7 +282,7 @@ int32_t read_psi_demo_options(int32_t* argcp, char*** argvp, role_type* role, ps
 
 	uint32_t int_role, int_protocol = 0;
 	parsing_ctx options[] = {{(void*) &int_role, T_NUM, 'r', "Role: 0/1", true, false},
-			{(void*) &int_protocol, T_NUM, 'p', "PSI protocol (0: Naive, 1: TTP, 2: DH, 3: DH_gattaca, 4: Generate_Filter, 5: DH_optimized, 6: OT)", true, false},
+			{(void*) &int_protocol, T_NUM, 'p', "PSI protocol (0: Naive, 1: TTP, 2: DH, 3: DH_GATTACA, 4: Generate_Cucko_filter, 5: Generate_Counting_Quotient_Filter, 6: DH_optimized, 7: OT)", true, false},
 			{(void*) filename, T_STR, 'f', "Input file", false, false},
 			{(void*) address, T_STR, 'a', "Server IP-address (needed by both, client and server)", false, false},
 			{(void*) nelements, T_NUM, 'n', "Number of elements", false, false},

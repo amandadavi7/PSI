@@ -10,6 +10,7 @@
 
 #include "../pk-based/dh-psi.h"
 #include "../generate_filter/dh_generate_filter.h"
+#include "../generate_counting_quotient_filter/dh_generate_counting_quotient_filter.h"
 #include "../pk-based_optimized/dh-psi_optimized.h"
 #include "../pk-based_gattaca/dh-psi_gattaca.h"
 #include "../ot-based/ot-psi.h"

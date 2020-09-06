@@ -3,7 +3,8 @@
  *
  *  Created on: May 20, 2015
  *      Author: mzohner
- *  Last modification: Dezember 12, 2017
+ * 
+ *  Last modification: August 12, 2020
  * 	Author: Amanda
  */
 
@@ -20,30 +21,42 @@
 #include "../util/cuckoo_filter/itemfilter.h"
 #include "../util/cuckoo_filter/singletable.h"
 
-//#define DEBUG_DH                     // Print when the operations are starting, like "Encryption assymetric task started..."
-//#define TIMING_OPERATION             // Print the time of the operation in the protocols, like the time waste to send and receive data or to do the hash
-//#define PRINT_EXP                    // Print the exponents and in some cases the points of the curve. It is not print the points correctly
-//#define TIMING_INDIVIDUAL_EXPO       // Print the individual time of each exponentiation
-//#define PRINT_HASHES                 // Print the HASHES
-//#define PRINT_INTERSECTION           // Print the values from the intersection. Needs to be fixed
-//#define TIMING_DH_INVERSE            // Print the time to compute the inverser of all exponents
-//#define CYCLES		       // Print the amount of cycles of the exponentiation operation
-#define BASIC_PROTOCOLS             // Must be used when you want to execute the protocols 0, 1, 2 and 6. For execute the protocol 3, 4 and 5 this option must be commented
-//#define MASKBYTELEN 	               // Define the size of the hash function output. Must be used just to execute the protocols 0, 1, 2, 6
-//#define PREPROCESSING		       // Preprocessing phase for the Baldi and our optimized protocol. Must be used just to execute the protocols 3 and 4
-//#define OPTIMIZED_PROTOCOLS   // Must be used only you want to execute the protocol 3 (Baldi with database) and 5 (our optimized protocol). Mus be used after executing at least once the preprocessing phase
+//#define DEBUG_DH                   // Print when the operations are starting, like "Encryption assymetric task started..."
+//#define TIMING_OPERATION           // Print the time of the operation in the protocols, like the time waste to send and receive data or to do the hash
+//#define PRINT_EXP                  // Print the exponents and in some cases the points of the curve. It is not print the points correctly
+//#define TIMING_INDIVIDUAL_EXPO     // Print the individual time of each exponentiation
+//#define PRINT_HASHES               // Print the HASHES
+//#define PRINT_INTERSECTION           // Print the values from the intersection.
+//#define TIMING_DH_INVERSE          // Print the time to compute the inverse of all exponents
+//#define CYCLES		             // Print the amount of cycles of the exponentiation operation
+#define BASIC_PROTOCOLS            // Must be used when you want to execute the protocols 0, 1, 2 and 7. For execute the protocol 3, 4, 5 and 6 this option must be commented
+//#define MASKBYTELEN 	             // Define the size of the hash function output. Must be used just to execute the protocols 0, 1, 2, 7
+//#define PREPROCESSING		         // Preprocessing phase for the Baldi and our optimized protocol. Must be used just to execute the protocols 3, 4 and 5
+//#define OPTIMIZED_PROTOCOLS        // Must be used only you want to execute the protocol 3 (Baldi with database) and 6 (our optimized semihonest protocol). Must be used after executing at least once the preprocessing phase
+//#define CUCKOO_FILTER  	         // Must be used in the the preprocessing phase or in the protocol 6 when you want to use a Cuckoo filter instead of a RSQF
+//#define ADD			             // Must be used only in the preprocessing phase when you jutst want to add elements in the RSQF
+//#define SEND_CQF		             // Must be used only in the preprocessing phase when you want just to send the RSQF
+//#define NEW_KEY 		             // Must be used only in the preprocessing phase when you want to start a new RSQF
+//#define GENERATE_AND_SEND	         // Must be used only in the preprocessing phase when you want to genenate a new RSQF and send it to the client
 
 #define PRECISION 4
 
 struct element_ctx {
 	uint32_t nelements;
-	union {
+	struct {
 		uint32_t fixedbytelen;
+		uint32_t fixedbytelen_hash;
+		uint32_t fixedbytelen_num;
 		uint32_t* varbytelens;
 	};
-	union {
+	struct {
 		uint8_t* input1d;
 		uint8_t** input2d;
+		uint8_t* input1d2;
+		uint8_t** input2d2;
+		uint8_t* input1d3;
+		uint8_t** input2d3;
+		uint8_t* input1d4;
 	};
 	uint32_t outbytelen;
 	uint8_t* output;
@@ -80,6 +93,13 @@ struct snd_ctx {
 	uint32_t snd_bytes;
 	CSocket* sock;
 };
+
+struct snd_ctx_64 {
+    uint8_t* snd_buf_64;
+    uint64_t snd_bytes_64;
+    CSocket* sock_64;
+};
+
 
 //return cycle counts as a 64-bit unsigned integer
 static unsigned long cycles(void) {
@@ -131,7 +151,7 @@ static void create_result_from_matches_var_bitlen(uint8_t*** result, uint32_t** 
 	std::sort(matches, matches+intersect_size);
 
 	for(i = 0; i < intersect_size; i++) {
-//		cout << "matches[" << i << "]: " << matches[i]  << '\n';
+//		cout << "matcvoidhes[" << i << "]: " << matches[i]  << '\n';
 		(*resbytelens)[i] = inbytelens[matches[i]];
 		(*result)[i] = (uint8_t*) malloc((*resbytelens)[i]);
 		memcpy((*result)[i], inputs[matches[i]], (*resbytelens)[i]);
@@ -175,43 +195,42 @@ static void *asym_encrypt(void* context) {
 		}
 
 #ifdef PRINT_EXP
-		cout <<"Exponent and the points of the curve before exponentiation"<<'\n';
-		exp->print();
-		tmpfe->print();
+	cout <<"Exponent and the points of the curve before exponentiation"<<'\n';
+	exp->print();
+	tmpfe->print();
 #endif
 
 #ifdef CYCLES
-		uint64_t cycle = cycles();
+	uint64_t cycle = cycles();
 #endif
 
 #ifdef TIMING_INDIVIDUAL_EXPO
 	gettimeofday(&t_start, NULL);
 #endif
 
-		tmpfe->set_pow(tmpfe, exp);
+        tmpfe->set_pow(tmpfe, exp);
 
 #ifdef TIMING_INDIVIDUAL_EXPO
-		gettimeofday(&t_end, NULL);
-		cout << "Time for the exponentiation " << i << ":\t" << fixed << std::setprecision(5) << getMillies(t_start, t_end) << " ms" << '\n';
+	gettimeofday(&t_end, NULL);
+	cout << "Time for the exponentiation " << i << ":\t" << fixed << std::setprecision(5) << getMillies(t_start, t_end) << " ms" << '\n';
 #endif
 
 #ifdef CYCLES
-		cycle = cycles() - cycle;
-		sum_cycle = sum_cycle + cycle;
+	cycle = cycles() - cycle;
+	sum_cycle = sum_cycle + cycle;
 #endif
 
 #ifdef PRINT_EXP
-
-		cout <<"Exponent and the points of the curve after exponentiation"<<'\n';
-		tmpfe->print();
-		exp->print();
+	cout <<"Exponent and the points of the curve after exponentiation"<<'\n';
+	tmpfe->print();
+	exp->print();
 #endif
-		tmpfe->export_to_bytes(outptr);
-
+    
+        tmpfe->export_to_bytes(outptr);
 	}
 
 #ifdef CYCLES
-	cout << "Cycle (sum_cycle/qtd of elements): " << sum_cycle/electx.nelements << '\n';
+	cout << "Cycle_asym (sum_cycle/qtd of elements): " << sum_cycle/electx.nelements << '\n';
 #endif
 
 #ifdef DEBUG_DH
@@ -221,6 +240,78 @@ static void *asym_encrypt(void* context) {
 	delete tmpfe;
 	return 0;
 }
+
+static void *asym_encrypt_var(void* context) {
+#ifdef DEBUG_DH
+	cout << "------------------------------------------------------------" << '\n';
+	cout << "****Encryption assymetric task started with equal alpha (asym_encrypt)****" << '\n';
+#endif
+	pk_crypto* field = ((task_ctx*) context)->actx.field;
+	element_ctx electx = ((task_ctx*) context)->eles;
+	num* exp = ((task_ctx*) context)->actx.exponent;
+	fe* tmpfe = field->get_fe();
+	uint8_t *inptr=electx.input1d, *outptr=electx.output;
+	uint32_t i;
+	timeval t_start, t_end;
+
+#ifdef CYCLES
+	uint64_t sum_cycle = 0;
+#endif
+
+	for(i = 0; i < electx.nelements; i++, inptr+=electx.fixedbytelen, outptr+=electx.outbytelen) {
+		if(((task_ctx*) context)->actx.sample) {
+			tmpfe->sample_fe_from_bytes(inptr, electx.fixedbytelen);
+		} else {
+			tmpfe->import_from_bytes(inptr);
+		}
+
+#ifdef PRINT_EXP
+	cout <<"Exponent and the points of the curve before exponentiation"<<'\n';
+	exp->print();
+	tmpfe->print();
+#endif
+
+#ifdef CYCLES
+	uint64_t cycle = cycles();
+#endif
+
+#ifdef TIMING_INDIVIDUAL_EXPO
+	gettimeofday(&t_start, NULL);
+#endif
+
+        tmpfe->set_pow_var(tmpfe, exp);
+
+#ifdef TIMING_INDIVIDUAL_EXPO
+	gettimeofday(&t_end, NULL);
+	cout << "Time for the exponentiation " << i << ":\t" << fixed << std::setprecision(5) << getMillies(t_start, t_end) << " ms" << '\n';
+#endif
+
+#ifdef CYCLES
+	cycle = cycles() - cycle;
+	sum_cycle = sum_cycle + cycle;
+#endif
+
+#ifdef PRINT_EXP
+	cout <<"Exponent and the points of the curve after exponentiation"<<'\n';
+	tmpfe->print();
+	exp->print();
+#endif
+    
+        tmpfe->export_to_bytes(outptr);
+	}
+
+#ifdef CYCLES
+	cout << "Cycle_asyv (sum_cycle/qtd of elements): " << sum_cycle/electx.nelements << '\n';
+#endif
+
+#ifdef DEBUG_DH
+	cout << "****Encryption assymetric task finished with equal alpha****" << '\n';
+	cout << "------------------------------------------------------------"<<'\n';
+#endif
+	delete tmpfe;
+	return 0;
+}
+
 
 static void *asym_encrypt_d(void* context) {
 #ifdef DEBUG_DH
@@ -242,10 +333,12 @@ static void *asym_encrypt_d(void* context) {
 #endif
 
 #ifdef PRINT_EXP
-	cout <<"Exponent before of the inverse: "<<'\n';
+	cout <<"Exponent before of the exponentiation: "<<'\n';
 #endif
+
 	for (int i=0; i < electx.nelements; i++){
 		e[i] = ((task_ctx*) context)->actx.v_exponent[i];
+        
 #ifdef PRINT_EXP
 		e[i]->print();
 #endif
@@ -263,40 +356,42 @@ static void *asym_encrypt_d(void* context) {
 		}
 
 #ifdef PRINT_EXP
-		cout <<"Exponent and the points of the curve before exponentiation: "<<'\n';
-		e[i]->print();
-		tmpfe->print();
-#endif
-
-#ifdef CYCLES
-		uint64_t cycle = cycles();
+	cout <<"Exponent and the points of the curve before exponentiation: "<<'\n';
+	e[i]->print();
+	tmpfe->print();
 #endif
 
 #ifdef TIMING_INDIVIDUAL_EXPO
-		gettimeofday(&t_start, NULL);
+	gettimeofday(&t_start, NULL);
 #endif
- 		tmpfe->set_pow(tmpfe, e[i]);
-
+	
+#ifdef CYCLES
+	uint64_t cycle = cycles();
+#endif
+    
+	tmpfe->set_pow_var(tmpfe, e[i]);
+    
 #ifdef TIMING_INDIVIDUAL_EXPO
-		gettimeofday(&t_end, NULL);
-		cout << "Time for the exponentiation " << i << ":\t" << fixed << std::setprecision(2) << getMillies(t_start, t_end) << " ms" << '\n';
+	gettimeofday(&t_end, NULL);
+	cout << "Time for the exponentiation " << i << ":\t" << fixed << std::setprecision(2) << getMillies(t_start, t_end) << " ms" << '\n';
 #endif
 
 #ifdef CYCLES
-		cycle = cycles() - cycle;
-		sum_cycle = sum_cycle + cycle;
+	cycle = cycles() - cycle;
+	sum_cycle = sum_cycle + cycle;
 #endif
 
 #ifdef PRINT_EXP
-		cout <<"Exponent and the points of the curve after exponentiation: "<<'\n';
-		e[i]->print();
-		tmpfe->print();
+	cout <<"Exponent and the points of the curve after exponentiation: "<<'\n';
+	e[i]->print();
+	tmpfe->print();
 #endif
-		tmpfe->export_to_bytes(outptr);
+    
+	tmpfe->export_to_bytes(outptr);
 	}
 
 #ifdef CYCLES
-	cout << "Cycle (sum_cycle/qtd of elements): " << sum_cycle/electx.nelements << '\n';;
+	cout << "Cycle_asyd (sum_cycle/qtd of elements): " << sum_cycle/electx.nelements << '\n';;
 #endif
 
 #ifdef DEBUG_DH
@@ -335,6 +430,7 @@ static void *asym_encrypt_inverse(void* context) {
 #ifdef PRINT_EXP
 	cout <<"Exponent before of the inverse: "<<'\n';
 #endif
+
 	for (int i=0; i < electx.nelements;i++){
 		exp[i] = ((task_ctx*) context)->actx.v_exponent[i];
 
@@ -350,6 +446,7 @@ static void *asym_encrypt_inverse(void* context) {
 #ifdef TIMING_DH_INVERSE
 	gettimeofday(&t_start, NULL);
 #endif
+    
 	tmpnum->set_inv(exp,tmpor,inv, electx.nelements);
 
 #ifdef TIMING_DH_INVERSE
@@ -365,40 +462,42 @@ static void *asym_encrypt_inverse(void* context) {
 		}
 
 #ifdef PRINT_EXP
-		cout <<"Exponent and the points of the curve before exponentiation"<<'\n';
-		inv[i]->print();
-		tmpfe->print();
+	cout <<"Exponent and the points of the curve before exponentiation"<<'\n';
+	inv[i]->print();
+	tmpfe->print();
 #endif
 
 #ifdef CYCLES
-		uint64_t cycle = cycles();
+	uint64_t cycle = cycles();
 #endif
 
 #ifdef TIMING_INDIVIDUAL_EXPO
-		gettimeofday(&t_start, NULL);
+	gettimeofday(&t_start, NULL);
 #endif
-		tmpfe->set_pow(tmpfe, inv[i]);
+    
+        tmpfe->set_pow_var(tmpfe, inv[i]);
 
 #ifdef TIMING_INDIVIDUAL_EXPO
-		gettimeofday(&t_end, NULL);
-		cout << "Time for the exponentiation (inverse) " << i << ":\t" << fixed << std::setprecision(2) << getMillies(t_start, t_end) << " ms" << '\n';
+	gettimeofday(&t_end, NULL);
+	cout << "Time for the exponentiation (inverse) " << i << ":\t" << fixed << std::setprecision(2) << getMillies(t_start, t_end) << " ms" << '\n';
 #endif
 
 #ifdef CYCLES
- 		cycle = cycles() - cycle;
-		sum_cycle = sum_cycle + cycle;
+ 	cycle = cycles() - cycle;
+	sum_cycle = sum_cycle + cycle;
 #endif
 
 #ifdef PRINT_EXP
-		cout << "Exponent and the points of the curve after exponentiation"<<'\n';
-		inv[i]->print();
-		tmpfe->print();
+	cout << "Exponent and the points of the curve after exponentiation"<<'\n';
+	inv[i]->print();
+	tmpfe->print();
 #endif
-		tmpfe->export_to_bytes(outptr);
+    
+        tmpfe->export_to_bytes(outptr);
 	}
 
 #ifdef CYCLES
-	cout << "Cycle (sum_cycle/qtd of elements): " << sum_cycle/electx.nelements << '\n';;
+	cout << "Cycle_asyi (sum_cycle/qtd of elements): " << sum_cycle/electx.nelements << '\n';;
 #endif
 
 #ifdef DEBUG_DH
@@ -416,6 +515,33 @@ static void *asym_encrypt_inverse(void* context) {
 
 	return 0;
 }
+
+static void *printing(void* context) {
+
+	pk_crypto* field = ((task_ctx*) context)->actx.field;
+	element_ctx electx = ((task_ctx*) context)->eles;
+	fe* tmpfe = field->get_fe();
+	uint8_t *inptr=electx.input1d;
+	uint32_t i;
+	timeval t_start, t_end;
+
+	for(i = 0; i < electx.nelements; i++, inptr+=electx.fixedbytelen) {
+		if(((task_ctx*) context)->actx.sample) {
+			tmpfe->sample_fe_from_bytes(inptr, electx.fixedbytelen);
+
+		} else {
+			tmpfe->import_from_bytes(inptr);
+		}
+
+		cout <<"Priting "<<'\n';
+		tmpfe->print();
+
+	}
+
+	delete tmpfe;
+	return 0;
+}
+
 
 static void *sym_encrypt(void* context) {
 #ifdef DEBUG_DH
@@ -510,6 +636,24 @@ static void snd_and_rcv(uint8_t* snd_buf, uint32_t snd_bytes, uint8_t* rcv_buf, 
 	assert(joined);
 }
 
+static void snd_and_rcv_64(uint8_t* snd_buf, uint64_t snd_bytes, uint8_t* rcv_buf, uint64_t rcv_bytes, CSocket* sock) {
+	pthread_t snd_task;
+	bool created, joined;
+	snd_ctx_64 ctx;
+	//Start new sender thread
+	ctx.sock_64 = sock;
+	ctx.snd_buf_64 = snd_buf;
+	ctx.snd_bytes_64 = snd_bytes;
+	created = !pthread_create(&snd_task, NULL, send_data, (void*) &(ctx));
+
+	//receive
+	sock->Receive(rcv_buf, rcv_bytes);
+	assert(created);
+
+	joined = !pthread_join(snd_task, NULL);
+	assert(joined);
+}
+
 static void run_task(uint32_t nthreads, task_ctx context, void* (*func)(void*) ) {
 	task_ctx* contexts = (task_ctx*) malloc(sizeof(task_ctx) * nthreads);
 	pthread_t* threads = (pthread_t*) malloc(sizeof(pthread_t) * nthreads);
@@ -526,15 +670,13 @@ static void run_task(uint32_t nthreads, task_ctx context, void* (*func)(void*) )
 		electr += neles_cur;
 	}
 
-	for(i = 0; i < nthreads; i++) {
+	for(i = 0; i < nthreads; i++) 
 		created = !pthread_create(threads + i, NULL, func, (void*) &(contexts[i]));
-	}
 
-	assert(created);http://www.globo.com/
+	assert(created);
 
-	for(i = 0; i < nthreads; i++) {
+	for(i = 0; i < nthreads; i++) 
 		joined = !pthread_join(threads[i], NULL);
-	}
 
 	assert(joined);
 
@@ -553,7 +695,7 @@ static uint32_t find_intersection(uint8_t* hashes, uint32_t neles, uint8_t* phas
 	uint32_t size_intersect, i, intersect_ctr=0, inserted=0;
 	uint32_t count = hashbytelen * neles, aux;
 
-//	cout << "hashbytelen: " <<hashbytelen << "\n" << "mapbytelen: " <<hashbytelen << "\n";
+	cout << "hashbytelen: " <<hashbytelen << "\n" << "mapbytelen: " <<hashbytelen << "\n";
 
 	for(i = 0; i < neles; i++) {
 		invperm[perm[i]] = i;
@@ -599,7 +741,7 @@ static uint32_t find_intersection(uint8_t* hashes, uint32_t neles, uint8_t* phas
 		if(g_hash_table_lookup_extended(map, (void*) &tmpkey, NULL, (void**) &tmpval)) {
 			matches[intersect_ctr] = tmpval[0];
 			intersect_ctr++;
-//			cout << "Intersect" << intersect_ctr << "\n";
+			cout << "Intersect" << intersect_ctr << "\n";
 			assert(intersect_ctr <= min(neles, pneles));
 		}
 	}
@@ -618,9 +760,8 @@ static uint32_t find_intersection(uint8_t* hashes, uint32_t neles, uint8_t* phas
 
 	ItemFilter** buffer_filter_c = new ItemFilter*[pneles];
 
-	for(i = 0; i < neles; i++) {
+	for(i = 0; i < neles; i++)
 		invperm[perm[i]] = i;
-	}
 
 	for(i=0;i<pneles;i++)
 		 buffer_filter_c[i] = new ItemFilter(&phashes[i*hashbytelen], hashbytelen);
@@ -644,17 +785,17 @@ static uint32_t find_intersection(uint8_t* hashes, uint32_t neles, uint8_t* phas
 	      buffer_filter_s[i] = new ItemFilter(&hashes[i*hashbytelen],hashbytelen);
 
 	for (i = 0; i < neles; i++) {
-	      if (filter_hashes.ContainPSI(buffer_filter_s[i]->GetHashFilter(hashbytelen)) == cuckoofilter::Ok){
+	    if (filter_hashes.ContainPSI(buffer_filter_s[i]->GetHashFilter(hashbytelen)) == cuckoofilter::Ok){
 		    matches[intersect_ctr] = invperm[i];
 		    intersect_ctr++;
 		    intersect_size_aux++;
-	      }
+	    }
 	}
 
 	size_intersect = intersect_size_aux;
 
 	for(i=0;i<neles;i++)
-	      delete buffer_filter_s[i];
+	    delete buffer_filter_s[i];
 
 	delete[] buffer_filter_s;
 

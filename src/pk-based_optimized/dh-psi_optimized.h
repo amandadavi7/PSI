@@ -16,6 +16,10 @@
 #include "../util/cuckoo_filter/cuckoofilter.h"
 #include "../util/cuckoo_filter/itemfilter.h"
 #include "../util/cuckoo_filter/singletable.h"
+#include "../util/counting_quotient_filter/gqf.h"
+#include "../util/counting_quotient_filter/gqf_file.h"
+#include "../util/counting_quotient_filter/gqf_int.h"
+#include "../util/counting_quotient_filter/hashutil.h"
 
 #include <glib.h>
 #include <cassert>
@@ -33,6 +37,10 @@ uint32_t dhpsi_optimized(role_type role, uint32_t neles, uint32_t pneles, uint32
 
 uint32_t dhpsi_optimized(role_type role, uint32_t neles, uint32_t pneles, task_ctx ectx, crypto* crypt_env, CSocket* sock,
 		uint32_t ntasks, uint32_t* matches, bool cardinality=false, field_type ftype=ECC_FIELD);
+
+uint64_t MurmurHash64A_2 ( const void * key, int len, unsigned int seed );
+
+__uint128_t MurmurHash3_x64_128_2 ( const void * key, const int len, const uint32_t seed);
 
 
 #endif /* DH_PSI_OPTIMIZED_H_ */

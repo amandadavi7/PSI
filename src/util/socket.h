@@ -19,7 +19,7 @@ public:
 	}
 	~CSocket(){ }
 	//~CSocket(){ cout << "Closing Socket!" << endl; Close(); }
-	
+
 #ifdef TRACK_COMMUNICATION
 	uint64_t get_bytes_sent() { return bytes_sent; };
 	uint64_t get_bytes_received() { return bytes_received; };
@@ -37,24 +37,24 @@ public:
 		  WORD wVersionRequested;
 		  WSADATA wsaData;
 
-		  wVersionRequested = MAKEWORD(2, 0);     
+		  wVersionRequested = MAKEWORD(2, 0);
 		  WSAStartup(wVersionRequested, &wsaData);
-		  s_bInit = TRUE; 
+		  s_bInit = TRUE;
 		}
 		#endif
-		
+
 		Close();
 
 		success =  (m_hSock = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP)) != INVALID_SOCKET; 
 
 		return success;
-	
+
 	}
 
 	void Close()
 	{
 		if( m_hSock == INVALID_SOCKET ) return;
-		
+
 		#ifdef WIN32
 		shutdown(m_hSock, SD_SEND);
 		closesocket(m_hSock);
@@ -62,9 +62,9 @@ public:
 		shutdown(m_hSock, SHUT_WR);
 		close(m_hSock);
 		#endif
-  
-		m_hSock = INVALID_SOCKET; 
-	} 
+
+		m_hSock = INVALID_SOCKET;
+	}
 
 	void AttachFrom(CSocket& s)
 	{
@@ -95,7 +95,7 @@ public:
 		if (getsockname(m_hSock, (sockaddr *) &addr, (socklen_t *) &addr_len) < 0) return 0;
 		return ntohs(addr.sin_port);
 	}
-	
+
 	bool Bind(uint16_t nPort=0, const char* ip = "")
 	{
 		// Bind the socket to its port
@@ -124,25 +124,25 @@ public:
 		{
 			sockAddr.sin_addr.s_addr = htonl(INADDR_ANY);
 		}
-		
+
 		sockAddr.sin_port = htons(nPort);
 
-		return bind(m_hSock, (sockaddr *) &sockAddr, sizeof(sockaddr_in)) >= 0; 
+		return bind(m_hSock, (sockaddr *) &sockAddr, sizeof(sockaddr_in)) >= 0;
 	}
 
 	bool Listen(int nQLen = 5)
 	{
 		return listen(m_hSock, nQLen) >= 0;
-	} 
+	}
 
 	bool Accept(CSocket& sock)
 	{
 		sock.m_hSock = accept(m_hSock, NULL, 0);
 		if( sock.m_hSock == INVALID_SOCKET ) return false;
- 
+
 		return true;
 	}
-	 
+
 	bool Connect(const char* ip, uint16_t port, int64_t lTOSMilisec = -1)
 	{
 		//cout << "Socket " << m_hSock << " connected" << endl;
@@ -173,27 +173,27 @@ public:
 		}
 
 		int ret = connect(m_hSock, (sockaddr*)&sockAddr, sizeof(sockAddr));
-		
+
 		if( ret >= 0 && lTOSMilisec > 0 )
 			setsockopt(m_hSock, SOL_SOCKET, SO_RCVTIMEO, (char*) &dw, sizeof(dw));
-	
+
 #else
-	
+
 		timeval	tv;
-		
+
 		if( lTOSMilisec > 0 )
 		{
 			tv.tv_sec = lTOSMilisec/1000;
 			tv.tv_usec = (lTOSMilisec%1000)*1000;
-	
+
 			setsockopt(m_hSock, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
 		}
 
 		int ret = connect(m_hSock, (sockaddr*)&sockAddr, sizeof(sockAddr));
-		
+
 		if( ret >= 0 && lTOSMilisec > 0 )
 		{
-			tv.tv_sec = 100000; 
+			tv.tv_sec = 100000;
 			tv.tv_usec = 0;
 
 			setsockopt(m_hSock, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
@@ -203,12 +203,19 @@ public:
 		return ret >= 0;
 	}
 
-	int Receive(void* pBuf, int nLen, int nFlags = 0)
+	uint64_t Receive(void* pBuf, uint64_t nLen, int nFlags = 0)
 	{
+
+#ifdef TRACK_COMMUNICATION
+                bytes_received += nLen;
+//              cout << "bytes_received = " << bytes_received << endl;
+//              cout << "receiver - (uint64_t) nLen) = " << (uint64_t) nLen << endl;
+#endif
 		//cout << "Socket " << m_hSock << " (" << (unsigned long long) this << ") receiving " << nLen << " bytes" << endl;
 		char* p = (char*) pBuf;
-		int n = nLen;
+		uint64_t n = nLen;
 		int ret = 0;
+
 		while( n > 0 )
         {
 			ret = recv(m_hSock, p, n, 0);
@@ -225,7 +232,7 @@ public:
 					cerr << "socket recv eror: EAGAIN" << endl;
 					SleepMiliSec(200);
 					continue;
-				} 
+				}
 				else
 				{
 					cerr << "socket recv error: " << errno << endl;
@@ -236,22 +243,24 @@ public:
 			else if (ret == 0)
 			{
 				return ret;
-			} 
+			}
 #endif
-      
+
             p += ret;
             n -= ret;
-        }
 
-#ifdef TRACK_COMMUNICATION
-		bytes_received += ((uint64_t) nLen);
+        }
+//  It was not working here
+
+//#ifdef TRACK_COMMUNICATION
+//		bytes_received += nLen;
 //		cout << "bytes_received = " << bytes_received << endl;
 //		cout << "receiver - (uint64_t) nLen) = " << (uint64_t) nLen << endl;
-#endif
+//#endif
 		return nLen;
  	}
- 
-	int Send(const void* pBuf, int nLen, int nFlags = 0)
+
+	uint64_t Send(const void* pBuf, uint64_t nLen, int nFlags = 0)
 	{
 		//cout << "Socket " << m_hSock << " (" << (unsigned long long) this << ") sending " << nLen << " bytes" << endl;
 #ifdef TRACK_COMMUNICATION
@@ -260,8 +269,8 @@ public:
 //		cout << "sender - (uint64_t) nLen) = " << (uint64_t) nLen << endl;
 #endif
 		return send(m_hSock, (char*)pBuf, nLen, nFlags);
-	}	
-	  
+	}
+
 private:
 	SOCKET	m_hSock;
 #ifdef TRACK_COMMUNICATION

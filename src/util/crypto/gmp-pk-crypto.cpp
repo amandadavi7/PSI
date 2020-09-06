@@ -57,8 +57,14 @@ void gmp_num::set_si(int32_t src) {
 void gmp_num::set_add(num* a, num* b) {
 	mpz_add(val, *num2mpz(a), *num2mpz(b));
 }
+void gmp_num::set_sub(num* a, num* b) {
+	mpz_sub(val, *num2mpz(a), *num2mpz(b));
+}
 void gmp_num::set_mul(num* a, num* b) {
 	mpz_mul(val, *num2mpz(a), *num2mpz(b));
+}
+
+void gmp_num::set_mul_mod(num* a, num* b) {
 }
 
 void gmp_num::set_inv(num** x, num* n, num** w, uint32_t qtd) {
@@ -68,6 +74,14 @@ void gmp_num::set_inv(num** x, num* n, num** w, uint32_t qtd) {
 void gmp_num::set_inv_1(num** x, num* n, num** w){
 //implementar  
 }
+
+int gmp_num::isnegative(num* x){
+return 0;
+}  
+
+void gmp_num::mod(num* x){
+}  
+
 
 void gmp_num::import_from_bytes(uint8_t* buf, uint32_t field_size) {
 	mpz_import(val, field_size, 1, sizeof((buf)[0]), 0, 0, (buf));
@@ -126,6 +140,10 @@ void gmp_fe::set_mul(fe* a, fe* b) {
 
 void gmp_fe::set_pow(fe* b, num* e) {
 	mpz_powm(val, *fe2mpz(b), *num2mpz(e), *field->get_p());
+}
+
+void gmp_fe::set_pow_var(fe* b, num* e) {
+
 }
 
 void gmp_fe::set_div(fe* a, fe* b) {

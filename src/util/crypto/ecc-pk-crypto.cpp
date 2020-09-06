@@ -4,7 +4,6 @@
  *  Created on: Jul 11, 2014
  *      Author: mzohner
  */
-
 #define GLS254
 //#define DEBUG_ECC
 #define COMPRESSION
@@ -44,7 +43,7 @@ void reverse(uint8_t arr[], int count)
 char *s_exp = (char *) "200000000000000000000000000000003f1a47dedc1a1dad3cbde37cf43a8cf4";
 
 void ecc_field::init(seclvl sp, uint8_t* seed) {
-
+  
 	miracl *mip = mirsys(sp.ecckcbits, 2);
 	fparams = (ecc_fparams*) malloc(sizeof(ecc_fparams));
 	secparam = sp;
@@ -252,7 +251,6 @@ EC2* ecc_fe::get_val() {
 }
 
 void ecc_fe::set_mul(fe* a, fe* b) {
-	cout << "set_mul" << endl;
 	set(a);
 	(*val)+=(*fe2ec2(b));
 }
@@ -295,14 +293,66 @@ void ecc_fe::set_pow(fe* b, num* e) {
 #endif
 }
 
+void ecc_fe::set_pow_var(fe* b, num* e) {
+#ifdef GLS254
+#ifdef DEBUG_ECC
+        Big x, y;
+        reverse(((ecc_fe *)b)->point, 32);
+        reverse(((ecc_fe *)b)->point+32, 32);
+        bytes_to_big (32, (const char *)((ecc_fe *)b)->point, x.getbig());
+        bytes_to_big (32, (const char *)((ecc_fe *)b)->point+32, y.getbig());
+        cout << "x in pow: " << x << endl;
+        cout << "y in pow: " << y << endl;
+        reverse(((ecc_fe *)b)->point, 32);
+        reverse(((ecc_fe *)b)->point+32, 32);
+        cout << "_pow: " << *num2Big(e) << endl;
+#endif
+
+      	uint8_t p[64] = { 0 };
+        uint8_t sk[32] = { 0 };
+        big_to_bytes(32, num2Big(e)->getbig(), (char*) sk, true);
+        reverse(sk, 32);
+        crypto_dh_gls254prot_var(point, ((ecc_fe *)b)->point, sk);
+
+#ifdef DEBUG_ECC
+        reverse(p, 32);
+        reverse(p+32, 32);
+        bytes_to_big (32, (const char*) p, x.getbig());
+        bytes_to_big (32, (const char*) p+32, y.getbig());
+        reverse(p, 32);
+        reverse(p+32, 32);
+        cout << "x in pow: " << x << endl;
+        cout << "y in pow: " << y << endl;
+#endif
+
+#else
+     	set(b);
+        (*val)*=(*num2Big(e));
+#endif
+}
+
 void ecc_fe::set_div(fe* a, fe* b) {
 	cout << "set_div" << endl;
 	set(a);
 	(*val)-=(*fe2ec2(b));
 }
 
+//void ecc_fe::set_double_pow_mul(fe* b1, num* e1, fe* b2, num* e2) {
+//	ecurve2_mult2(num2Big(e1)->getbig(), fe2ec2(b1)->get_point(), num2Big(e2)->getbig(), fe2ec2(b2)->get_point(), val->get_point());
+//}
+
 void ecc_fe::set_double_pow_mul(fe* b1, num* e1, fe* b2, num* e2) {
-	ecurve2_mult2(num2Big(e1)->getbig(), fe2ec2(b1)->get_point(), num2Big(e2)->getbig(), fe2ec2(b2)->get_point(), val->get_point());
+  
+	uint8_t sk[32] = { 0 };
+	uint8_t sk1[32] = { 0 };
+
+	big_to_bytes(32, num2Big(e1)->getbig(), (char*) sk, true);
+	reverse(sk, 32);
+	big_to_bytes(32, num2Big(e2)->getbig(), (char*) sk1, true);
+	reverse(sk1, 32);
+ 
+	crypto_dh_gls254prot_two(point, ((ecc_fe *)b1)->point, sk, ((ecc_fe *)b2)->point, sk1);
+
 }
 
 void ecc_fe::import_from_bytes(uint8_t* buf) {
@@ -323,7 +373,7 @@ void ecc_fe::export_to_bytes(uint8_t* buf) {
 }
 
 void ecc_fe::sample_fe_from_bytes(uint8_t* buf, uint32_t bytelen) {
-	#ifdef GLS254
+#ifdef GLS254
 
 	memset(point, 0, sizeof(point));
 	if (bytelen == 32) {
@@ -348,7 +398,7 @@ void ecc_fe::sample_fe_from_bytes(uint8_t* buf, uint32_t bytelen) {
 	reverse(point+32, 32);
 #endif
 	
-	#else
+#else
 
 	EC2 point;
 	Big bigtmp;
@@ -373,7 +423,7 @@ void ecc_fe::sample_fe_from_bytes(uint8_t* buf, uint32_t bytelen) {
 	cerr << "Error while sampling point, exiting!" << endl;
 	exit(0);
 
-	#endif
+#endif
 }
 
 ecc_num::ecc_num(ecc_field* fld) {
@@ -407,9 +457,31 @@ void ecc_num::set_add(num* a, num* b) {
 	add(((ecc_num*) a)->get_val()->getbig(), ((ecc_num*) b)->get_val()->getbig(), val->getbig());
 }
 
+void ecc_num::set_sub(num* a, num* b) {
+	subtract(((ecc_num*) a)->get_val()->getbig(), ((ecc_num*) b)->get_val()->getbig(), val->getbig());
+}
+
 void ecc_num::set_mul(num* a, num* b) {
 	multiply(((ecc_num*) a)->get_val()->getbig(), ((ecc_num*) b)->get_val()->getbig(), val->getbig());
 }
+
+void ecc_num::set_mul_mod(num* a, num* b) {
+  
+	num* tmpor = field->get_order();
+	Big x, y;
+	big z ; 
+	
+	z=mirvar(_MIPP_ 0);
+
+	prepare_monty(((ecc_num*) tmpor)->get_val()->getbig());
+	nres(((ecc_num*) a)->get_val()->getbig(), x.getbig());
+	nres(((ecc_num*) b)->get_val()->getbig(), y.getbig());
+	nres_modmult(x.getbig(), y.getbig(), z);
+	redc(z,val->getbig());
+	mirkill(z);
+	delete tmpor;
+}
+
 
 void ecc_num::set_inv(num** x, num* n, num** w, uint32_t qtd) {
 	Big *x1 = new Big[qtd];
@@ -437,6 +509,20 @@ void ecc_num::set_inv_1(num** x, num* n, num** w) {
 	w[0] = (num*) new ecc_num (this->field, &inv);
 }
 //--------------------------------------------------
+
+int ecc_num::isnegative(num* x) {
+  	
+	int result = exsign(((ecc_num*) x)->get_val()->getbig());
+	
+	return result;
+}
+
+void ecc_num::mod(num* x) {
+  
+  	num* tmpor = field->get_order();
+	fmodulo(((ecc_num*) x)->get_val()->getbig(), ((ecc_num*) tmpor)->get_val()->getbig(),val->getbig());
+}
+
 
 void ecc_num::import_from_bytes(uint8_t* buf, uint32_t field_size_bytes) {
 	bytes_to_big (field_size_bytes, (const char*) buf, val->getbig());

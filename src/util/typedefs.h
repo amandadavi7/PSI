@@ -119,7 +119,7 @@ static const seclvl LT = {40, 128, 3072, 256, 283};// Acho que ele pega esse
 static const seclvl XLT = {40, 192, 7680, 384, 409};
 static const seclvl XXLT = {40, 256, 15360, 512, 571};
 
-enum psi_prot {NAIVE=0, TTP=1, DH_ECC=2, DH_ECC_GATTACA=3, GENERATE_FILTER =4, DH_ECC_OPTIMIZED=5, OT_PSI=6, PROT_LAST=7};
+enum psi_prot {NAIVE=0, TTP=1, DH_ECC=2, DH_ECC_GATTACA=3, GENERATE_FILTER=4, GENERATE_COUNTING_QUOTIENT_FILTER=5, DH_ECC_OPTIMIZED=6, OT_PSI=7, PROT_LAST=9};
 
 static int ceil_log2(int bits) {
 	if(bits == 1) return 1;

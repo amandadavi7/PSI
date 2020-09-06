@@ -2,22 +2,22 @@
 
 ### Faster Unbalanced Private Set Intersection
 
-By *Amanda Resende and Diego Aranha* in Financial Cryptography and Data Security 2018 (FC 2018) [1]. Please note that the code is currently being restructured and not all routines might work correctly. The implementation of OT-based PSI protocol [5], the naive hashing, the server-aided protocol [2] and the Diffie-Hellman-based PSI protocol [3] was obtained from Pinkas et al. [5] available at https://github.com/encryptogroup/PSI, with some changes. The PSI code is licensed under AGPLv3, see the LICENSE file for a copy of the license. 
+By *Amanda Resende and Diego Aranha* in Financial Cryptography and Data Security 2018 (FC 2018) [2] and to be published in the Journal of Cryptographic Engineering (JCEN) [2]. Please note that the code is currently being restructured and not all routines might work correctly. The implementation of OT-based PSI protocol [6], the naive hashing, the server-aided protocol [3] and the Diffie-Hellman-based PSI protocol [4] was obtained from Pinkas et al. [6] available at https://github.com/encryptogroup/PSI, with some changes. The PSI code is licensed under AGPLv3, see the LICENSE file for a copy of the license. 
 
 ### Features
 ---
 
 * An implementation of different PSI protocols: 
   * the naive hashing solutions where elements are hashed and compared 
-  * the server-aided protocol of [2]
-  * the Diffie-Hellman-based PSI protocol of [3]
+  * the server-aided protocol of [3]
   * the Diffie-Hellman-based PSI protocol of [4]
-  * the OT-based PSI protocol of [5]
-  * the unbalanced PSI protocol based on public key cryptography [1] 
+  * the Diffie-Hellman-based PSI protocol of [5]
+  * the OT-based PSI protocol of [6]
+  * the unbalanced PSI protocol based on public key cryptography [1,2] 
 
 This code is provided as a experimental implementation for testing purposes and should not be used in a productive environment. We cannot guarantee security and correctness.
 
-WARNING: Because of the change in the elliptic curve, the OT-based PSI protocol of [5] is not working. For correct execution see https://github.com/encryptogroup/PSI.
+WARNING: Because of the change in the elliptic curve, the OT-based PSI protocol of [6] is not working. For correct execution see https://github.com/encryptogroup/PSI.
 
 ### Requirements
 ---
@@ -61,14 +61,16 @@ and in the second terminal:
 These commands will run the naive hashing protocol and compute the intersection on the 1024 randomly generated numbers in sample_sets/sample_alice and sample_sets/sample_bob (where 5 intersecting elements were altered). To use a different protocol, the ['-p'] option can be varied as follows:	
 
   * `-p 0`: the naive hashing protocol 
-  * `-p 1`: the server-aided protocol of [2]
-  * `-p 2`: the Diffie-Hellman-based PSI protocol of [3]
-  * `-p 3`: the Diffie-Hellman-based PSI protocol of [4]
-  * `-p 6`: the OT-based PSI protocol of [5]
+  * `-p 1`: the server-aided protocol of [3]
+  * `-p 2`: the Diffie-Hellman-based PSI protocol of [4]
+  * `-p 3`: the Diffie-Hellman-based PSI protocol of [5]
+  * `-p 4`: Cuckoo filter [7]
+  * `-p 5`: Rank-and-Select-based Quotient filter (RSQF) [8]
+  * `-p 6`: the OT-based PSI protocol of [6]
 
-For the next ['-p'] option must be use different commands. For executing the Diffie-Hellman-based PSI protocol of [4] and unbalanced PSI protocol based on public key cryptography [1], it must executing the preprocessing phase at least once.
+For the next ['-p'] option must be use different commands. For executing the Diffie-Hellman-based PSI protocol of [5] and unbalanced PSI protocol based on public key cryptography [1,2], it must executing the preprocessing phase at least once.
 
-For`-p 3` (Preprocessing): generating a database and send to the client in the the Diffie-Hellman-based PSI protocol of [4]. It must be selected only the macro #define PREPROCESSING in src/util/helpers, call `make` and opening two terminals in the root directory. Execute in the first terminal:
+For`-p 3` (Preprocessing): generating a database and send to the client in the the Diffie-Hellman-based PSI protocol of [5]. It must be selected only the macro #define PREPROCESSING in src/util/helpers, call `make` and opening two terminals in the root directory. Execute in the first terminal:
 
 	./demo.exe -r 0 -p 3 -f sample_sets/sample_alice
 
@@ -76,7 +78,7 @@ and in the second terminal:
 
 	./demo.exe -r 1 -p 3 
 
-For `-p 3`: executing the the Diffie-Hellman-based PSI protocol of [4]. It must be selected only the macro #define OPTIMIZED_PROTOCOLS, call `make` and opening two terminals in the root directory. Execute in the first terminal:
+For `-p 3`: executing the the Diffie-Hellman-based PSI protocol of [5]. It must be selected only the macro #define OPTIMIZED_PROTOCOLS, call `make` and opening two terminals in the root directory. Execute in the first terminal:
 
 	./demo.exe -r 0 -p 3 -n number_of_elements_in_database
 
@@ -84,7 +86,7 @@ and in the second terminal:
 
 	./demo.exe -r 1 -p 3 -f sample_sets/sample_bob
 
-For `-p 4` (Preprocessing): generating a filter and send to the client in the unbalanced PSI protocol based on public key cryptography [1]. It must be selected only the macro #define PREPROCESSING in src/util/helpers, call `make` and opening two terminals in the root directory. Execute in the first terminal:
+For `-p 4` (Preprocessing): generating and sending a Cuckoo filter [7] to the client in the unbalanced PSI protocol based on public key cryptography [1,2]. It must be selected only the macro #define PREPROCESSING in src/util/helpers, call `make` and opening two terminals in the root directory. Execute in the first terminal:
 
 	./demo.exe -r 0 -p 4 -f sample_sets/sample_alice
 
@@ -92,13 +94,21 @@ and in the second terminal:
 
 	./demo.exe -r 1 -p 4 
 
-For `-p 5`: executing the unbalanced PSI protocol based on public key cryptography [1]. It must be selected only the macro #define OPTIMIZED_PROTOCOLS, call `make` and opening two terminals in the root directory. Execute in the first terminal:
+For `-p 5` (Preprocessing): generating and sending a a RSQF [8] to the client in the unbalanced PSI protocol based on public key cryptography [1,2]. It must be selected only the macros #define PREPROCESSING, #define NEW_KEY and #define GENERATE_AND_SEND in src/util/helpers, call `make` and opening two terminals in the root directory. Execute in the first terminal:
 
-	./demo.exe -r 0 -p 5 -n number_of_elements_in_filter
+	./demo.exe -r 0 -p 5 -f sample_sets/sample_alice
 
 and in the second terminal:
 
-	./demo.exe -r 1 -p 5 -f sample_sets/sample_bob
+	./demo.exe -r 1 -p 5 
+
+For `-p 6`: executing the unbalanced PSI protocol based on public key cryptography [1]. It must be selected only the macro #define OPTIMIZED_PROTOCOLS (#define CUCKOO_FILTER must be selected to use the Cuckoo filter), call `make` and opening two terminals in the root directory. Execute in the first terminal:
+
+	./demo.exe -r 0 -p 6 -n number_of_elements_in_filter
+
+and in the second terminal:
+
+	./demo.exe -r 1 -p 6 -f sample_sets/sample_bob
 
 
 This should print the following output in the second terminal: 
@@ -122,13 +132,18 @@ Further random numbers can be generated by navigating to `sample_sets/` and invo
 
 ### References
 
-[1] A. Resende and D. Aranha. Faster Unbalanced Private Set Intersection. In Financial Cryptography and Data Security (FC 2018), LNCS. Springer, 2018.
+[1] A. Resende and D. Aranha. Faster Unbalanced Private Set Intersection. In Financial Cryptography and Data Security (FC), LNCS. Springer, 2018.
 
-[2] S. Kamara, P. Mohassel, M. Raykova, and S. Sadeghian. Scaling private set intersection to billion-element sets. In Financial Cryptography and Data Security (FC 2014), LNCS. Springer, 2014.
+[2] A. Resende and D. Aranha. Faster Unbalanced Private Set Intersection in the Semi-Honest Setting. To be published in the Journal of Cryptographic Engineering (JCEN).
 
-[3] C. Meadows. A more efficient cryptographic matchmaking protocol for use in the absence of a continuously available third party. In IEEE S&P’86, pages 134–137. IEEE, 1986.
+[3] S. Kamara, P. Mohassel, M. Raykova, and S. Sadeghian. Scaling private set intersection to billion-element sets. In Financial Cryptography and Data Security (FC), LNCS. Springer, 2014.
 
-[4] P. Baldi, R. Baronio, E. D. Cristofaro, P. Gasti, and G. Tsudik, Countering GATTACA: Efficient and Secure Testing of Fully-sequenced Human Genomes, in ACM Conference on Computer and Communications Security, pp. 691-702, ACM, 2011
+[4] C. Meadows. A more efficient cryptographic matchmaking protocol for use in the absence of a continuously available third party. In IEEE S&P’86, pages 134–137. IEEE, 1986.
 
-[5] B. Pinkas, T. Schneider, M. Zohner. Scalable Private Set Intersection Based on OT Extension. Available at http://eprint.iacr.org/2016/930. 
+[5] P. Baldi, R. Baronio, E. D. Cristofaro, P. Gasti, and G. Tsudik, Countering GATTACA: Efficient and Secure Testing of Fully-sequenced Human Genomes. In ACM Conference on Computer and Communications Security, pp. 691–702, 2011.
 
+[6] B. Pinkas, T. Schneider, M. Zohner. Scalable Private Set Intersection Based on OT Extension. In ACM Transactions on Privacy and Security, pages 7:1–7:35, 2018. 
+
+[7] B. Fan, D. G. Andersen, M. Kaminsky, M. Mitzenmacher. Cuckoo Filter: Practically Better Than Bloom. In ACM International on Conference on Emerging Networking Experiments and Technologies (CoNEXT), pages 75–88, 2014. 
+
+[8] P. Pandey, M.A. Bender, R. Johnson, R. Patro. A General-Purpose Counting Filter: Making Every Bit Count. In ACM International Conference on Management of Data (SIGMOD),  pages 775–787, 2017.

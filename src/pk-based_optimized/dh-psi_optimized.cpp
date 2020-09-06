@@ -4,7 +4,9 @@
  *  Created on: May 26, 2017
  *      Author: Amanda
  */
+
 #include "dh-psi_optimized.h"
+#include <../../home/amanda/Área de Trabalho/psi_malicious/psi/src/util/counting_quotient_filter/hashutil.h>
 
 uint32_t dhpsi_optimized(role_type role, uint32_t neles, uint32_t pneles, uint32_t* elebytelens, uint8_t** elements,
 		uint8_t*** result, uint32_t** resbytelens, crypto* crypt_env, CSocket* sock, uint32_t ntasks,
@@ -176,7 +178,7 @@ uint32_t dhpsi_optimized(role_type role, uint32_t neles, uint32_t pneles, task_c
 #ifdef TIMING_OPERATION
 	      gettimeofday(&t_start, NULL);
 #endif
-              snd_and_rcv(NULL, 0, s_peles, pneles * fe_bytes, tmpsock);
+          snd_and_rcv(NULL, 0, s_peles, pneles * fe_bytes, tmpsock);
 
 #ifdef TIMING_OPERATION
 	      gettimeofday(&t_end, NULL);
@@ -203,26 +205,23 @@ uint32_t dhpsi_optimized(role_type role, uint32_t neles, uint32_t pneles, task_c
 
 	      fclose(arq_key);
 
-              ectx.eles.input1d = s_peles;
-              ectx.eles.nelements = pneles;
+          ectx.eles.input1d = s_peles;
+          ectx.eles.nelements = pneles;
 	      ectx.eles.output = s_peles;
 	      ectx.actx.exponent = exponent;
 
 #ifdef TIMING_OPERATION
-              gettimeofday(&t_start, NULL);
+          gettimeofday(&t_start, NULL);
 #endif
 	      run_task(ntasks, ectx, asym_encrypt);
 
 #ifdef TIMING_OPERATION
 	      gettimeofday(&t_end, NULL);
 	      cout << "Time for the second exponentiation (server):\t" << fixed << std::setprecision(PRECISION) << getMillies(t_start, t_end) << " ms" << endl;
+          gettimeofday(&t_start, NULL);
 #endif
 
 	      sndbufsize = pneles * fe_bytes;
-
-#ifdef TIMING_OPERATION
-              gettimeofday(&t_start, NULL);
-#endif
 	      snd_and_rcv(s_peles, sndbufsize, NULL, 0, tmpsock);
 
 #ifdef TIMING_OPERATION
@@ -243,14 +242,13 @@ uint32_t dhpsi_optimized(role_type role, uint32_t neles, uint32_t pneles, task_c
 #ifdef TIMING_OPERATION
 	      gettimeofday(&t_end, NULL);
 	      cout << "Time for the client to receive {a'_1, ..., a'_j}: \t" << fixed << std::setprecision(PRECISION)<< getMillies(t_start, t_end) << "ms" <<  endl;
+          gettimeofday(&t_start, NULL);
+
 #endif
 	      ectx.eles.input1d = c_eles;
 	      ectx.eles.nelements = neles;
 	      ectx.eles.output = c_eles;
 
-#ifdef TIMING_OPERATION
-	      gettimeofday(&t_start, NULL);
-#endif
 	      for(i=0; i<neles;i++)
 		     ectx.actx.v_exponent[i] = exponent_aux[i];
 
@@ -329,6 +327,12 @@ uint32_t dhpsi_optimized(role_type role, uint32_t neles, uint32_t pneles, task_c
 #ifdef TIMING_OPERATION
 	    	gettimeofday(&t_start, NULL);
 #endif
+            
+        for(i = 0; i < neles; i++)
+            invperm[perm[i]] = i;
+		
+#ifdef CUCKOO_FILTER 
+
 		ItemFilter** buffer_filter = new ItemFilter*[neles];
 
 		cuckoofilter::CuckooFilter<ItemFilter, 16> filter_hashes(pneles);
@@ -342,21 +346,15 @@ uint32_t dhpsi_optimized(role_type role, uint32_t neles, uint32_t pneles, task_c
 
 		filter_hashes.ReadFile(arq);
 		fclose(arq);
-
+		
 #ifdef TIMING_OPERATION
 	    	gettimeofday(&t_end, NULL);
 	    	cout << "Time for read data from the database: \t"<< fixed << std::setprecision(PRECISION) << getMillies(t_start, t_end) << "ms" << endl;
 	        gettimeofday(&t_start, NULL);
 #endif
+                    
 		for(i=0;i<neles;i++)
 		    buffer_filter[i] = new ItemFilter(&c_eles[i*fe_bytes],fe_bytes);
-
-#ifdef TIMING_OPERATION
-	    	gettimeofday(&t_start, NULL);
-#endif
-
-        for(i = 0; i < neles; i++)
-            invperm[perm[i]] = i;
 
 		for (i = 0; i < neles; i++) {
 		      if (filter_hashes.ContainPSI(buffer_filter[i]->GetHashFilter(fe_bytes)) == cuckoofilter::Ok){
@@ -373,11 +371,57 @@ uint32_t dhpsi_optimized(role_type role, uint32_t neles, uint32_t pneles, task_c
                cout << "Time for found intersection: \t" << fixed << std::setprecision(PRECISION) << getMillies(t_start, t_end)  << "ms" <<  endl;
 #endif
 		for(i=0; i<neles; i++){
-		      delete exponent_aux[i];
 		      delete buffer_filter[i];
 		}
 
 		delete[] buffer_filter;
+		
+#endif
+
+#ifndef CUCKOO_FILTER
+
+		QF file_qf;		
+		uint64_t aux1;	      
+        __uint128_t hash_c;
+
+		char filename[] = "cqf.cqf";
+	
+		fprintf(stdout, "Reading the CQF from disk.\n");
+		qf_deserialize(&file_qf, filename);
+
+#ifdef TIMING_OPERATION
+	    gettimeofday(&t_end, NULL);
+	    cout << "Time for read data from the database: \t"<< fixed << std::setprecision(PRECISION) << getMillies(t_start, t_end) << "ms" << endl;
+	    gettimeofday(&t_start, NULL);
+#endif
+		
+		printf("\nFilter informations: \n");
+		qf_dump_metadata(&file_qf);
+		printf("Size in megabytes: %lf\n", (double) file_qf.metadata->total_size_in_bytes_plus_metadada/1024/1024);
+		printf("Size in bytes: %lu\n\n", file_qf.metadata->total_size_in_bytes_plus_metadada);		
+        	
+		for (uint64_t i = 0; i < neles; i++) {
+		    hash_c = MurmurHash3_x64_128_2(&c_eles[i*fe_bytes], fe_bytes,0);	
+		    if (qf_query(&file_qf, hash_c , &aux1,0)) {
+			    matches[intersect_ctr] = invperm[i];
+			    intersect_ctr++;
+			    intersect_size_aux++;
+		    }
+		}
+				
+		intersect_size = intersect_size_aux;
+		
+		qf_free(&file_qf);
+		
+#ifdef TIMING_OPERATION
+	       gettimeofday(&t_end, NULL);
+               cout << "Time for found intersection: \t" << fixed << std::setprecision(PRECISION) << getMillies(t_start, t_end)  << "ms" <<  endl;
+#endif
+
+#endif			       
+		for(i=0; i<neles; i++){
+		      delete exponent_aux[i];
+		}	       
 
 		free(c_encrypted_eles);
 		free(c_eles);
@@ -397,3 +441,151 @@ uint32_t dhpsi_optimized(role_type role, uint32_t neles, uint32_t pneles, task_c
 
 	return intersect_size;
 }
+
+uint64_t MurmurHash64A_2 ( const void * key, int len, unsigned int seed )
+{
+	const uint64_t m = 0xc6a4a7935bd1e995;
+	const int r = 47;
+
+	uint64_t h = seed ^ (len * m);
+
+	const uint64_t * data = (const uint64_t *)key;
+	const uint64_t * end = data + (len/8);
+
+	while(data != end)
+	{
+		uint64_t k = *data++;
+
+		k *= m; 
+		k ^= k >> r; 
+		k *= m; 
+
+		h ^= k;
+		h *= m; 
+	}
+
+	const unsigned char * data2 = (const unsigned char*)data;
+
+	switch(len & 7)
+	{
+		case 7: h ^= (uint64_t)data2[6] << 48;
+		case 6: h ^= (uint64_t)data2[5] << 40;
+		case 5: h ^= (uint64_t)data2[4] << 32;
+		case 4: h ^= (uint64_t)data2[3] << 24;
+		case 3: h ^= (uint64_t)data2[2] << 16;
+		case 2: h ^= (uint64_t)data2[1] << 8;
+		case 1: h ^= (uint64_t)data2[0];
+						h *= m;
+	};
+
+	h ^= h >> r;
+	h *= m;
+	h ^= h >> r;
+
+	return h;
+}
+
+#define	FORCE_INLINE inline __attribute__((always_inline))
+
+uint64_t rotl64_1 ( uint64_t x, int8_t r )
+{
+  return (x << r) | (x >> (64 - r));
+}
+
+FORCE_INLINE uint64_t getblock64_1 ( const uint64_t * p, int i )
+{
+  return p[i];
+}
+
+#define ROTL64_1(x,y)	rotl64_1(x,y)
+#define BIG_CONSTANT_1(x) (x##LLU)
+
+FORCE_INLINE uint64_t fmix64_1 ( uint64_t k )
+{
+  k ^= k >> 33;
+  k *= BIG_CONSTANT_1(0xff51afd7ed558ccd);
+  k ^= k >> 33;
+  k *= BIG_CONSTANT_1(0xc4ceb9fe1a85ec53);
+  k ^= k >> 33;
+
+  return k;
+}
+
+__uint128_t MurmurHash3_x64_128_2( const void * key, const int len, const uint32_t seed)
+{
+  const uint8_t * data = (const uint8_t*)key;
+  const int nblocks = len / 16;
+
+  uint64_t h1 = seed;
+  uint64_t h2 = seed;
+
+  const uint64_t c1 = BIG_CONSTANT_1(0x87c37b91114253d5);
+  const uint64_t c2 = BIG_CONSTANT_1(0x4cf5ad432745937f);
+
+  //----------
+  // body
+
+  const uint64_t * blocks = (const uint64_t *)(data);
+
+  for(int i = 0; i < nblocks; i++)
+  {
+    uint64_t k1 = getblock64_1(blocks,i*2+0);
+    uint64_t k2 = getblock64_1(blocks,i*2+1);
+
+    k1 *= c1; k1  = ROTL64_1(k1,31); k1 *= c2; h1 ^= k1;
+
+    h1 = ROTL64_1(h1,27); h1 += h2; h1 = h1*5+0x52dce729;
+
+    k2 *= c2; k2  = ROTL64_1(k2,33); k2 *= c1; h2 ^= k2;
+
+    h2 = ROTL64_1(h2,31); h2 += h1; h2 = h2*5+0x38495ab5;
+  }
+
+  //----------
+  // tail
+
+  const uint8_t * tail = (const uint8_t*)(data + nblocks*16);
+
+  uint64_t k1 = 0;
+  uint64_t k2 = 0;
+
+  switch(len & 15)
+  {
+  case 15: k2 ^= ((uint64_t)tail[14]) << 48;
+  case 14: k2 ^= ((uint64_t)tail[13]) << 40;
+  case 13: k2 ^= ((uint64_t)tail[12]) << 32;
+  case 12: k2 ^= ((uint64_t)tail[11]) << 24;
+  case 11: k2 ^= ((uint64_t)tail[10]) << 16;
+  case 10: k2 ^= ((uint64_t)tail[ 9]) << 8;
+  case  9: k2 ^= ((uint64_t)tail[ 8]) << 0;
+           k2 *= c2; k2  = ROTL64_1(k2,33); k2 *= c1; h2 ^= k2;
+
+  case  8: k1 ^= ((uint64_t)tail[ 7]) << 56;
+  case  7: k1 ^= ((uint64_t)tail[ 6]) << 48;
+  case  6: k1 ^= ((uint64_t)tail[ 5]) << 40;
+  case  5: k1 ^= ((uint64_t)tail[ 4]) << 32;
+  case  4: k1 ^= ((uint64_t)tail[ 3]) << 24;
+  case  3: k1 ^= ((uint64_t)tail[ 2]) << 16;
+  case  2: k1 ^= ((uint64_t)tail[ 1]) << 8;
+  case  1: k1 ^= ((uint64_t)tail[ 0]) << 0;
+           k1 *= c1; k1  = ROTL64_1(k1,31); k1 *= c2; h1 ^= k1;
+  };
+
+  //----------
+  // finalization
+
+  h1 ^= len; h2 ^= len;
+
+  h1 += h2;
+  h2 += h1;
+
+  h1 = fmix64_1(h1);
+  h2 = fmix64_1(h2);
+
+  h1 += h2;
+  h2 += h1;
+
+  __uint128_t r = ((__uint128_t)h2 << 64) ^ h1;
+  return r;
+}
+

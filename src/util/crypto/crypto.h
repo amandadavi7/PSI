@@ -83,9 +83,11 @@ public:
 	void encrypt(uint8_t* resbuf, uint8_t* inbuf, uint32_t ninbytes);
 	void decrypt(uint8_t* resbuf, uint8_t* inbuf, uint32_t ninbytes);
 
-	//Hash routines
+	//double routines
 	void hash(uint8_t* resbuf, uint32_t noutbytes, uint8_t* inbuf, uint32_t ninbytes);
 	void hash(uint8_t* resbuf, uint32_t noutbytes, uint8_t* inbuf, uint32_t ninbytes, uint8_t* tmpbuf);
+	void hash_double(uint8_t* resbuf, uint32_t noutbytes, uint8_t* inbuf1, uint8_t* inbuf2, uint32_t ninbytes1, uint32_t ninbytes2, uint8_t* tmpbuf);
+	void hash_mult(uint8_t* resbuf, uint32_t noutbytes, uint8_t* inbuf1, uint8_t* inbuf2, uint8_t* inbuf3, uint32_t ninbytes, uint8_t* tmpbuf);
 	void hash_ctr(uint8_t* resbuf, uint32_t noutbytes, uint8_t* inbuf, uint32_t ninbytes, uint64_t ctr);
 	void fixed_key_aes_hash(AES_KEY_CTX* aes_key, uint8_t* resbuf, uint32_t noutbytes, uint8_t* inbuf, uint32_t ninbytes);
 	void fixed_key_aes_hash_ctr(uint8_t* resbuf, uint32_t noutbytes, uint8_t* inbuf, uint32_t ninbytes);
@@ -136,12 +138,17 @@ private:
 	uint8_t* sha_hash_buf;
 
 	void (*hash_routine)(uint8_t*, uint32_t, uint8_t*, uint32_t, uint8_t*);
+	void (*hash_routine_double)(uint8_t*, uint32_t, uint8_t*, uint8_t*, uint32_t, uint32_t, uint8_t*);
+	void (*hash_routine_mult)(uint8_t*, uint32_t, uint8_t*, uint8_t*, uint8_t*, uint32_t, uint8_t*);
+
 };
 
 
 //Some functions that should be useable without the class
 void sha1_hash(uint8_t* resbuf, uint32_t noutbytes, uint8_t* inbuf, uint32_t ninbytes, uint8_t* hash_buf);
 void sha256_hash(uint8_t* resbuf, uint32_t noutbytes, uint8_t* inbuf, uint32_t ninbytes, uint8_t* hash_buf);
+void sha256_hash_double(uint8_t* resbuf, uint32_t noutbytes, uint8_t* inbuf1, uint8_t* inbuf2, uint32_t ninbytes1, uint32_t ninbytes2, uint8_t* hash_buf);
+void sha256_hash_mult(uint8_t* resbuf, uint32_t noutbytes, uint8_t* inbuf1, uint8_t* inbuf2, uint8_t* inbuf3, uint32_t ninbytes, uint8_t* hash_buf);
 void sha512_hash(uint8_t* resbuf, uint32_t noutbytes, uint8_t* inbuf, uint32_t ninbytes, uint8_t* hash_buf);
 void gen_secure_random(uint8_t* dest, uint32_t nbytes);
 void gen_rnd_bytes(prf_state_ctx* prf_state, uint8_t* resbuf, uint32_t nbytes);
@@ -166,3 +173,4 @@ static void InitAndReadCodeWord(REGISTER_SIZE*** codewords) {
 
 
 #endif /* CRYPTO_H_ */
+
